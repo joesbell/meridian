@@ -1,0 +1,14 @@
+{
+  "mcp": {
+    "code-review-graph": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "code-review-graph",
+        "serve",
+        "--repo",
+        "/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/radius-live-edition"
+      ]
+    }
+  }
+}

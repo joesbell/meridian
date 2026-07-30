@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "code-review-graph": {
+      "command": "uvx",
+      "args": [
+        "code-review-graph",
+        "serve"
+      ],
+      "cwd": "/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/radius-live-edition",
+      "type": "stdio"
+    }
+  }
+}
