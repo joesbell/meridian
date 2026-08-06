@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node --env-file=.env server/dev.mjs",
+    "dev:all": "concurrently -n server,web -c blue,green \"npm:server\" \"npm:dev\"",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
-    "start": "node server/start.mjs",
+    "start": "node --env-file=.env server/start.mjs",
+    "db:reset": "rm -f data/radius.db data/radius.db-shm data/radius.db-wal && echo \"数据库已清空（data/radius.db* 已删除）\"",
     "preview": "vite preview",
     "test:sites": "node --test tests/sites-worker.test.mjs",
     "test:feed": "node --test tests/feed-api.test.mjs"
@@ -16,6 +19,7 @@
     "@phosphor-icons/react": "^2.1.10",
     "@splinetool/react-spline": "^4.1.0",
     "@vitejs/plugin-react": "5.0.4",
+    "better-sqlite3": "^13.0.2",
     "fast-xml-parser": "^5.8.0",
     "gsap": "^3.15.0",
     "motion": "^12.42.2",
@@ -25,5 +29,8 @@
     "thinking-orbs": "^0.1.1",
     "three": "^0.181.2",
     "vite": "6.4.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
   }
 }

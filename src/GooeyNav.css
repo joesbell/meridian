@@ -1,180 +1,243 @@
-.gooey-nav {
-  --gooey-color-1: #7dffd9;
-  --gooey-color-2: #43e8bd;
-  --gooey-color-3: #b8ffeb;
-  --gooey-color-4: #22b991;
+/* React Bits 官方 GooeyNav 样式
+   本地化调整：
+   1. --color-1..4 粒子色板改为站点薄荷绿系（官方要求使用方自行定义）
+   2. 标签改小字号 + 允许换行，适配左右两侧窄栏（官方版为整页宽横排）
+   3. 粒子/药丸统一为站点薄荷青，不铺黑色滤镜底 */
+
+.gooey-nav-container {
+  --color-1: #22b991;
+  --color-2: #2bd4a5;
+  --color-3: #35e5b6;
+  --color-4: #169a78;
+  --linear-ease: linear(
+    0,
+    0.068,
+    0.19 2.7%,
+    0.804 8.1%,
+    1.037,
+    1.199 13.2%,
+    1.245,
+    1.27 15.8%,
+    1.274,
+    1.272 17.4%,
+    1.249 19.1%,
+    0.996 28%,
+    0.949,
+    0.928 33.3%,
+    0.926,
+    0.933 36.8%,
+    1.001 45.6%,
+    1.013,
+    1.019 50.8%,
+    1.018 54.4%,
+    1 63.1%,
+    0.995 68%,
+    1.001 85%,
+    1
+  );
+  position: relative;
+  font-size: 12px;
+}
+
+.gooey-nav-container nav {
+  display: flex;
   position: relative;
   transform: translate3d(0, 0, 0.01px);
 }
 
-.gooey-nav nav,
-.gooey-nav ul {
-  position: relative;
-  width: 100%;
-}
-
-.gooey-nav ul {
-  z-index: 3;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  margin: 0;
-  padding: 0;
+.gooey-nav-container nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
   list-style: none;
-}
-
-.gooey-nav li {
+  padding: 0;
+  margin: 0;
   position: relative;
-  min-width: 0;
-  border-radius: 3px;
-  color: #777e7b;
-  transition: color 0.3s ease;
+  z-index: 3;
+  color: #e8f5f0;
+  text-shadow: 0 1px 1px hsl(205deg 30% 10% / 0.2);
 }
 
-.gooey-nav li::after {
+.gooey-nav-container nav ul li {
+  border-radius: 100vw;
+  position: relative;
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease;
+  box-shadow: 0 0 0.5px 1.5px transparent;
+  color: #e8f5f0;
+}
+
+.gooey-nav-container nav ul li a {
+  display: inline-block;
+  padding: 0.55em 1em;
+  white-space: nowrap;
+  text-decoration: none;
+  color: inherit;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.gooey-nav-container nav ul li:focus-within:has(:focus-visible) {
+  box-shadow: 0 0 0 1.5px var(--color-1);
+}
+
+.gooey-nav-container nav ul li::after {
   content: "";
   position: absolute;
-  inset: 2px;
-  z-index: -1;
-  border-radius: 2px;
-  background: var(--mint);
+  inset: 0;
+  border-radius: 100vw;
+  background: var(--mint, #7dffd9);
   opacity: 0;
-  transform: scale(0.76);
-  transition: opacity 0.28s ease, transform 0.38s cubic-bezier(0.2, 1, 0.3, 1);
+  transform: scale(0);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: -1;
 }
 
-.gooey-nav li.is-active {
-  color: #07110e;
+.gooey-nav-container nav ul li.active {
+  color: #07100e;
+  text-shadow: none;
+  box-shadow: 0 0 6px rgba(125, 255, 217, 0.12);
 }
 
-.gooey-nav li.is-active::after {
+.gooey-nav-container nav ul li.active::after {
   opacity: 1;
   transform: scale(1);
 }
 
-.gooey-nav button {
-  display: block;
-  width: 100%;
-  height: 46px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font-size: 13px;
-  font-weight: 750;
-}
-
-.gooey-nav button:focus-visible {
-  outline: 1px solid var(--mint);
-  outline-offset: -4px;
-}
-
-.gooey-effect {
+.gooey-nav-container .effect {
   position: absolute;
-  top: 0;
   left: 0;
-  z-index: 1;
-  display: grid;
+  top: 0;
   width: 0;
   height: 0;
-  place-items: center;
-  border-radius: 3px;
-  pointer-events: none;
-}
-
-.gooey-effect--text {
-  z-index: 4;
-  color: #07110e;
-  font-size: 13px;
-  font-weight: 750;
-  opacity: 0;
-  transition: opacity 0.18s ease;
-}
-
-.gooey-effect--text.is-active {
   opacity: 1;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  z-index: 1;
 }
 
-.gooey-effect--filter {
-  isolation: isolate;
-  filter: blur(5px) contrast(18);
-  mix-blend-mode: screen;
+.gooey-nav-container .effect.text {
+  color: var(--color-1);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: color 0.12s ease;
 }
 
-.gooey-effect--filter::before {
-  display: none;
+.gooey-nav-container .effect.text.active {
+  color: #07100e;
 }
 
-.gooey-effect--filter::after {
+.gooey-nav-container .effect.filter {
+  filter: blur(3px) contrast(4);
+}
+
+.gooey-nav-container .effect.filter::before {
+  content: none;
+}
+
+.gooey-nav-container .effect.filter::after {
   content: "";
   position: absolute;
   inset: 1px;
-  z-index: -1;
-  border-radius: 3px;
-  background: var(--mint);
-  opacity: 0;
+  background: var(--color-1);
   transform: scale(0);
-}
-
-.gooey-effect--filter.is-active::after {
-  animation: gooey-pill 0.32s ease both;
-}
-
-.gooey-particle,
-.gooey-point {
-  display: block;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-}
-
-.gooey-particle {
-  position: absolute;
-  top: calc(50% - 7px);
-  left: calc(50% - 7px);
   opacity: 0;
-  animation: gooey-particle var(--time) ease 1 -260ms;
+  z-index: -1;
+  border-radius: 100vw;
 }
 
-.gooey-point {
+.gooey-nav-container .effect.active::after {
+  animation: pill 0.18s var(--linear-ease) both;
+}
+
+@keyframes pill {
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.particle,
+.point {
+  display: block;
+  opacity: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 100%;
+  transform-origin: center;
+}
+
+.particle {
+  --time: 5s;
+  position: absolute;
+  top: calc(50% - 8px);
+  left: calc(50% - 8px);
+  animation: particle calc(var(--time)) ease 1 -350ms;
+}
+
+.point {
   background: var(--color);
   opacity: 1;
-  animation: gooey-point var(--time) ease 1 -260ms;
+  animation: point calc(var(--time)) ease 1 -350ms;
 }
 
-@keyframes gooey-pill {
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes gooey-particle {
+@keyframes particle {
   0% {
+    transform: rotate(0deg) translate(calc(var(--start-x)), calc(var(--start-y)));
     opacity: 1;
-    transform: rotate(0deg) translate(var(--start-x), var(--start-y));
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
   }
-  72% {
+
+  70% {
+    transform: rotate(calc(var(--rotate) * 0.5)) translate(calc(var(--end-x) * 1.2), calc(var(--end-y) * 1.2));
     opacity: 1;
-    transform: rotate(calc(var(--rotate) * 0.5)) translate(calc(var(--end-x) * 1.15), calc(var(--end-y) * 1.15));
+    animation-timing-function: ease;
   }
+
+  85% {
+    transform: rotate(calc(var(--rotate) * 0.66)) translate(calc(var(--end-x)), calc(var(--end-y)));
+    opacity: 1;
+  }
+
   100% {
-    opacity: 1;
     transform: rotate(calc(var(--rotate) * 1.2)) translate(calc(var(--end-x) * 0.5), calc(var(--end-y) * 0.5));
+    opacity: 1;
   }
 }
 
-@keyframes gooey-point {
+@keyframes point {
   0% {
-    opacity: 0;
     transform: scale(0);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
   }
-  38%,
-  82% {
+
+  25% {
+    transform: scale(calc(var(--scale) * 0.25));
+  }
+
+  38% {
     opacity: 1;
-    transform: scale(var(--scale));
   }
+
+  65% {
+    transform: scale(var(--scale));
+    opacity: 1;
+    animation-timing-function: ease;
+  }
+
+  85% {
+    transform: scale(var(--scale));
+    opacity: 1;
+  }
+
   100% {
-    opacity: 0;
     transform: scale(0);
+    opacity: 0;
   }
 }

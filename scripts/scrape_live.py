@@ -5,9 +5,10 @@ import re
 import sys
 import base64
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from html import unescape
 from urllib.parse import quote, urljoin
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from scrapling.fetchers import DynamicFetcher, DynamicSession, Fetcher
@@ -21,6 +22,11 @@ CHROME_OPTIONS = {
     "network_idle": False,
     "timeout": 45_000,
 }
+
+ACTIVE_TRANSLATION_PROVIDER = ""
+# Qwen-MT 专用翻译通道：阿里云百炼 OpenAI 兼容端点 + 专用翻译模型
+QWEN_MT_ENDPOINT = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+QWEN_MT_MODEL = "qwen-mt-flash"
 
 
 def compact(value):
@@ -47,109 +53,84 @@ def translation_from_google(payload):
 
 
 def translation_config():
-    """返回 (api_key, endpoint, model)，未配置时 api_key 为空字符串。"""
+    """返回 (api_key, endpoint, model)；默认走 Qwen-MT 专用通道，未配置时 api_key 为空字符串。"""
     api_key = os.getenv("TRANSLATION_API_KEY") or os.getenv("DASHSCOPE_API_KEY") or ""
     endpoint = (
         os.getenv("TRANSLATION_API_URL")
         or os.getenv("DASHSCOPE_API_URL")
-        or "https://api.deepseek.com/chat/completions"
+        or QWEN_MT_ENDPOINT
     )
     model = (
         os.getenv("TRANSLATION_MODEL")
         or os.getenv("DASHSCOPE_TRANSLATION_MODEL")
-        or "deepseek-chat"
+        or QWEN_MT_MODEL
     )
     return api_key, endpoint, model
 
 
 def translation_provider():
+    if ACTIVE_TRANSLATION_PROVIDER:
+        return ACTIVE_TRANSLATION_PROVIDER
     if translation_config()[0]:
         return f"{translation_config()[2]} 中文本地化"
     return "Google Translate 降级模式"
 
 
-def translation_batches(indexes, texts, max_chars=9000):
-    batch = []
-    length = 0
-    for index in indexes:
-        text_length = len(texts[index])
-        if batch and length + text_length > max_chars:
-            yield batch
-            batch = []
-            length = 0
-        batch.append(index)
-        length += text_length
-    if batch:
-        yield batch
-
-
-def parse_json_content(value):
-    content = compact(value)
-    content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content, flags=re.I)
-    return json.loads(content)
+def translate_qwen_mt_one(api_key, endpoint, model, text):
+    """调 Qwen-MT 专用翻译模型：通过 translation_options 指定目标语言，直接返回译文文本。"""
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": text}],
+        "translation_options": {"target_lang": "Chinese"},
+    }
+    request = Request(
+        endpoint,
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    with urlopen(request, timeout=30) as response:
+        result = json.loads(response.read().decode("utf-8"))
+    value = compact(result.get("choices", [{}])[0].get("message", {}).get("content", ""))
+    if not value:
+        raise RuntimeError(f"{model} 返回了空翻译")
+    return value
 
 
 def translate_with_llm(texts, pending):
+    """全部翻译请求只走 Qwen-MT（默认 qwen-mt-flash），6 并发逐条翻译；
+    单条失败时保留原文不影响其他条目，全部失败才返回 None 触发降级。
+    返回 (translated, succeeded_indices)。"""
+    global ACTIVE_TRANSLATION_PROVIDER
     api_key, endpoint, model = translation_config()
     if not api_key:
         return None
     translated = list(texts)
-    system_prompt = (
-        "你是资深中文科技编辑和专业译者。请把输入 JSON 中的文本本地化为自然、准确、"
-        "符合中文新闻与技术文档语境的简体中文。先理解上下文再表达，禁止逐词硬译；"
-        "保留公司名、产品名、仓库名、代码、URL、数字、股票代码和必要的英文术语；"
-        "已有中文只润色病句，不添加原文没有的信息。只返回 JSON 对象，格式为"
-        '{"translations":["..."]}，数组长度和顺序必须与输入完全一致。'
-    )
-    for indexes in translation_batches(pending, texts):
-        payload = {
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {
-                    "role": "user",
-                    "content": json.dumps(
-                        {"texts": [texts[index] for index in indexes]},
-                        ensure_ascii=False,
-                    ),
-                },
-            ],
-            "temperature": 0.15,
+    succeeded = set()
+    with ThreadPoolExecutor(max_workers=min(6, len(pending))) as executor:
+        futures = {
+            executor.submit(translate_qwen_mt_one, api_key, endpoint, model, texts[index]): index
+            for index in pending
         }
-        request = Request(
-            endpoint,
-            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
-        with urlopen(request, timeout=90) as response:
-            result = json.loads(response.read().decode("utf-8"))
-        content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
-        parsed = parse_json_content(content)
-        values = parsed.get("translations") if isinstance(parsed, dict) else parsed
-        if not isinstance(values, list) or len(values) != len(indexes):
-            raise RuntimeError(f"{model} 返回的翻译数量不完整")
-        for item_index, value in zip(indexes, values):
-            localized = compact(value)
-            if not localized:
-                raise RuntimeError(f"{model} 返回了空翻译")
-            translated[item_index] = localized
-    return translated
+        for future in as_completed(futures):
+            index = futures[future]
+            try:
+                translated[index] = future.result()
+                succeeded.add(index)
+            except (HTTPError, URLError, TimeoutError, RuntimeError, KeyError, IndexError, json.JSONDecodeError):
+                pass  # 保留原文，其他条目继续
+    if not succeeded:
+        return None  # 全部失败，降级到 Google Translate
+    ACTIVE_TRANSLATION_PROVIDER = f"{model} 中文本地化"
+    return translated, succeeded
 
 
-def translate_texts(texts):
-    normalized = [compact(text)[:1800] for text in texts]
-    pending = [index for index, text in enumerate(normalized) if text and needs_translation(text)]
-    translated = list(normalized)
-    if not pending:
-        return translated
-
-    llm_translated = translate_with_llm(normalized, pending)
-    if llm_translated is not None:
-        return llm_translated
+def _google_translate_batch(translated, indices, normalized):
+    """Google Translate 降级：逐条翻译，单条失败保留原文不影响其他。返回成功的下标集合。"""
+    succeeded = set()
 
     def translate_one(index):
         url = (
@@ -163,18 +144,50 @@ def translate_texts(texts):
             raise RuntimeError("翻译结果为空")
         return index, value
 
-    with ThreadPoolExecutor(max_workers=min(6, len(pending))) as executor:
-        for item_index, value in executor.map(translate_one, pending):
-            translated[item_index] = value
+    with ThreadPoolExecutor(max_workers=min(6, len(indices))) as executor:
+        futures = {executor.submit(translate_one, index): index for index in indices}
+        for future in as_completed(futures):
+            index = futures[future]
+            try:
+                _, value = future.result()
+                translated[index] = value
+                succeeded.add(index)
+            except (HTTPError, URLError, TimeoutError, RuntimeError, json.JSONDecodeError):
+                pass  # 保留原文，其他条目继续
+    return succeeded
 
-    untranslated = [
-        translated[index]
-        for index in pending
+
+def translate_texts(texts):
+    """返回 (translated, providers)：providers[i] 为实际使用的翻译引擎（模型名 / "Google Translate"），
+    未翻译或翻译失败的条目为空字符串。"""
+    global ACTIVE_TRANSLATION_PROVIDER
+    # 保留 \n\n 段落分隔（compact 会把换行折叠成空格，导致无法拆分）
+    normalized = [re.sub(r"[^\S\n]+", " ", unescape(str(text or ""))).strip()[:30000] for text in texts]
+    pending = [index for index, text in enumerate(normalized) if text and needs_translation(text)]
+    translated = list(normalized)
+    providers = [""] * len(texts)
+    if not pending:
+        return translated, providers
+
+    model = translation_config()[2]
+    llm_result = translate_with_llm(normalized, pending)
+    if llm_result is not None:
+        translated, llm_succeeded = llm_result
+        for index in llm_succeeded:
+            providers[index] = model
+
+    # 收集仍未翻译成中文的条目，降级到 Google Translate
+    still_pending = [
+        index for index in pending
         if not re.search(r"[\u3400-\u9fff]", translated[index])
     ]
-    if untranslated:
-        raise RuntimeError("仍有内容未完成中文翻译")
-    return translated
+    if still_pending:
+        if not ACTIVE_TRANSLATION_PROVIDER:
+            ACTIVE_TRANSLATION_PROVIDER = "Google Translate 降级模式"
+        for index in _google_translate_batch(translated, still_pending, normalized):
+            providers[index] = "Google Translate"
+
+    return translated, providers
 
 
 def parse_github_article(article, period, rank):
@@ -237,7 +250,7 @@ def scrape_github():
             if row["description"]:
                 unique_descriptions[row["name"]] = row["description"]
     names = list(unique_descriptions)
-    translations = translate_texts([unique_descriptions[name] for name in names])
+    translations, _providers = translate_texts([unique_descriptions[name] for name in names])
     translated_by_name = dict(zip(names, translations))
     for rows in snapshots.values():
         for row in rows:
@@ -361,7 +374,7 @@ def scrape_article(url):
     if len(paragraphs) < 2:
         raise RuntimeError("原文页面正文过短或受访问限制")
 
-    translated = translate_texts([title, *paragraphs])
+    translated, _providers = translate_texts([title, *paragraphs])
     return {
         "title": translated[0],
         "paragraphs": translated[1:],
@@ -407,7 +420,7 @@ def scrape_readme(url):
     if not blocks:
         raise RuntimeError("README 内容为空")
 
-    localized = translate_texts(translatable)
+    localized, _providers = translate_texts(translatable)
     for position, text in zip(translatable_positions, localized):
         blocks[position]["text"] = text
     title = next((block["text"] for block in blocks if block["type"] == "heading"), url.rstrip("/").split("/")[-1])
@@ -451,7 +464,7 @@ def translate_payload(payload):
         summary = compact(record.get("summary"))
         layout.append((len(texts), len(texts) + 1))
         texts.extend((title, summary))
-    translations = translate_texts(texts)
+    translations, _providers = translate_texts(texts)
     output = []
     for record, (title_index, summary_index) in zip(records, layout):
         output.append(
@@ -468,6 +481,75 @@ def translate_payload(payload):
     }
 
 
+def batch_translate(texts):
+    """批量翻译任意文本数组，返回翻译后的数组及每条实际使用的翻译引擎。"""
+    translated, providers = translate_texts(texts)
+    return {
+        "translations": translated,
+        "providers": providers,
+        "language": "zh-CN",
+        "translationProvider": translation_provider(),
+    }
+
+
+def batch_readme(urls):
+    """批量抓取多个仓库的 README，复用同一个 Chrome 会话。"""
+    results = []
+    with DynamicSession(**CHROME_OPTIONS, max_pages=1) as session:
+        for url in urls:
+            normalized = url.rstrip("/")
+            try:
+                page = session.fetch(
+                    normalized,
+                    wait=800,
+                    wait_selector="article.markdown-body",
+                    **{key: value for key, value in CHROME_OPTIONS.items() if key in {"disable_resources", "network_idle", "timeout"}},
+                )
+                containers = page.css("article.markdown-body") or page.css(".markdown-body")
+                if not containers:
+                    results.append({"url": normalized, "error": "no readme"})
+                    continue
+                container = containers[0]
+                blocks = []
+                translatable = []
+                translatable_positions = []
+                total_length = 0
+                for element in container.css("h1, h2, h3, p, li, pre"):
+                    tag = str(getattr(element, "tag", "") or "").lower()
+                    kind = "code" if tag == "pre" else "heading" if tag in {"h1", "h2", "h3"} else "list" if tag == "li" else "paragraph"
+                    text = compact(element.get_all_text(separator="\n" if kind == "code" else " ", strip=True))
+                    if not text or (kind != "code" and len(text) < 2):
+                        continue
+                    text = text[:5000] if kind == "code" else text[:1800]
+                    if total_length + len(text) > 60_000:
+                        break
+                    block = {"type": kind, "text": text}
+                    blocks.append(block)
+                    total_length += len(text)
+                    if kind != "code":
+                        translatable_positions.append(len(blocks) - 1)
+                        translatable.append(text)
+                    if len(blocks) >= 140:
+                        break
+                if not blocks:
+                    results.append({"url": normalized, "error": "empty"})
+                    continue
+                localized, _providers = translate_texts(translatable)
+                for position, text in zip(translatable_positions, localized):
+                    blocks[position]["text"] = text
+                title = next((block["text"] for block in blocks if block["type"] == "heading"), normalized.rstrip("/").split("/")[-1])
+                results.append({
+                    "title": title,
+                    "blocks": blocks,
+                    "url": normalized,
+                    "language": "zh-CN",
+                    "translationProvider": translation_provider(),
+                })
+            except Exception as exc:
+                results.append({"url": normalized, "error": str(exc)})
+    return {"results": results}
+
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
     payload = json.loads(sys.stdin.read() or "{}")
@@ -481,6 +563,10 @@ def main():
         result = scrape_readme(payload["url"])
     elif mode == "translate":
         result = translate_payload(payload)
+    elif mode == "batch_translate":
+        result = batch_translate(payload.get("texts", []))
+    elif mode == "batch_readme":
+        result = batch_readme(payload.get("urls", []))
     elif mode == "image":
         result = scrape_image(payload["url"], payload.get("referer", ""))
     else:

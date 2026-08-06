@@ -17,6 +17,11 @@ function RobotLoading() {
 export function InteractiveRobotSpline() {
   const [ready, setReady] = useState(false);
 
+  const handleLoad = (spline) => {
+    spline.findObjectByName("Plane")?.hide();
+    setReady(true);
+  };
+
   return (
     <div
       className={`interactive-robot${ready ? " is-ready" : ""}`}
@@ -30,7 +35,7 @@ export function InteractiveRobotSpline() {
         <Spline
           scene={ROBOT_SCENE_PATH}
           className="interactive-robot__scene"
-          onLoad={() => setReady(true)}
+          onLoad={handleLoad}
         />
       </Suspense>
     </div>

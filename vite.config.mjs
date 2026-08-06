@@ -1,6 +1,5 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { createFeedMiddleware } from "./server/feedApi.mjs";
 
 export default defineConfig({
   build: {
@@ -12,8 +11,15 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     allowedHosts: ["terminal.local"],
+    // 前后端分离：/api/* 请求代理到独立的后端服务（npm run server，端口 4173）
+    proxy: {
+      "/api": {
+        target: `http://localhost:${process.env.PORT || 4173}`,
+        changeOrigin: true,
+      },
+    },
     watch: {
-      ignored: ["**/.venv/**", "**/work/**"],
+      ignored: ["**/.venv/**", "**/work/**", "**/data/**"],
     },
     warmup: {
       clientFiles: ["./src/main.jsx"],
@@ -21,11 +27,5 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    {
-      name: "radius-live-feed-api",
-      configureServer(server) {
-        server.middlewares.use(createFeedMiddleware());
-      },
-    },
   ],
 });

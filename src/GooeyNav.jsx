@@ -1,122 +1,168 @@
-import { useEffect, useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import "./GooeyNav.css";
 
-export default function GooeyNav({
+// React Bits 官方 GooeyNav（JS + CSS 版）
+// 本地化改动：
+// 1. 新增 onSelect(item, index) 回调——点击时通知父组件切换分类/周期
+// 2. 新增 label prop 作为 nav 的 aria-label
+// 3. 点击时 preventDefault，避免 href="#" 触发路由跳转
+const GooeyNav = ({
   items,
-  activeIndex = 0,
+  animationTime = 360,
+  particleCount = 15,
+  particleDistances = [90, 10],
+  particleR = 100,
+  timeVariance = 120,
+  colors = [1, 2, 3, 1, 2, 3, 1, 4],
+  initialActiveIndex = 0,
   onSelect,
-  animationTime = 520,
-  particleCount = 12,
-  particleDistances = [54, 8],
-  particleR = 74,
-  timeVariance = 220,
-  colors = [1, 2, 3, 1, 2, 4],
-}) {
+  label = "分类导航",
+}) => {
   const containerRef = useRef(null);
   const navRef = useRef(null);
   const filterRef = useRef(null);
   const textRef = useRef(null);
-  const previousIndexRef = useRef(activeIndex);
-  const timersRef = useRef([]);
+  const [activeIndex, setActiveIndex] = useState(initialActiveIndex);
 
-  const noise = (amount = 1) => amount / 2 - Math.random() * amount;
+  const noise = (n = 1) => n / 2 - Math.random() * n;
 
   const getXY = (distance, pointIndex, totalPoints) => {
     const angle = ((360 + noise(8)) / totalPoints) * pointIndex * (Math.PI / 180);
     return [distance * Math.cos(angle), distance * Math.sin(angle)];
   };
 
-  const updateEffectPosition = (element) => {
-    if (!containerRef.current || !filterRef.current || !textRef.current || !element) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const itemRect = element.getBoundingClientRect();
-    const styles = {
-      left: `${itemRect.x - containerRect.x}px`,
-      top: `${itemRect.y - containerRect.y}px`,
-      width: `${itemRect.width}px`,
-      height: `${itemRect.height}px`,
+  const createParticle = (i, t, d, r) => {
+    const rotate = noise(r / 10);
+    return {
+      start: getXY(d[0], particleCount - i, particleCount),
+      end: getXY(d[1] + noise(7), particleCount - i, particleCount),
+      time: t,
+      scale: 1 + noise(0.2),
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotate: rotate > 0 ? (rotate + r / 20) * 10 : (rotate - r / 20) * 10,
     };
-    Object.assign(filterRef.current.style, styles);
-    Object.assign(textRef.current.style, styles);
-    textRef.current.textContent = element.textContent;
   };
 
   const makeParticles = (element) => {
+    const d = particleDistances;
+    const r = particleR;
     const bubbleTime = animationTime * 2 + timeVariance;
     element.style.setProperty("--time", `${bubbleTime}ms`);
-    element.querySelectorAll(".gooey-particle").forEach((particle) => particle.remove());
 
-    for (let index = 0; index < particleCount; index += 1) {
-      const timeout = window.setTimeout(() => {
-        const rotateNoise = noise(particleR / 10);
-        const start = getXY(particleDistances[0], particleCount - index, particleCount);
-        const end = getXY(particleDistances[1] + noise(7), particleCount - index, particleCount);
-        const duration = animationTime * 2 + noise(timeVariance * 2);
-        const particle = document.createElement("span");
-        const point = document.createElement("span");
-        particle.className = "gooey-particle";
-        point.className = "gooey-point";
-        particle.style.setProperty("--start-x", `${start[0]}px`);
-        particle.style.setProperty("--start-y", `${start[1]}px`);
-        particle.style.setProperty("--end-x", `${end[0]}px`);
-        particle.style.setProperty("--end-y", `${end[1]}px`);
-        particle.style.setProperty("--time", `${duration}ms`);
-        particle.style.setProperty("--scale", `${1 + noise(0.2)}`);
-        particle.style.setProperty("--color", `var(--gooey-color-${colors[Math.floor(Math.random() * colors.length)]})`);
-        particle.style.setProperty("--rotate", `${(rotateNoise > 0 ? rotateNoise + particleR / 20 : rotateNoise - particleR / 20) * 10}deg`);
-        particle.appendChild(point);
-        element.appendChild(particle);
-        requestAnimationFrame(() => element.classList.add("is-active"));
-        const removal = window.setTimeout(() => particle.remove(), duration);
-        timersRef.current.push(removal);
-      }, 30);
-      timersRef.current.push(timeout);
+    element.classList.remove("active");
+
+    for (let i = 0; i < particleCount; i++) {
+      const t = animationTime * 2 + noise(timeVariance * 2);
+      const p = createParticle(i, t, d, r);
+      const particle = document.createElement("span");
+      const point = document.createElement("span");
+      particle.classList.add("particle");
+      particle.style.setProperty("--start-x", `${p.start[0]}px`);
+      particle.style.setProperty("--start-y", `${p.start[1]}px`);
+      particle.style.setProperty("--end-x", `${p.end[0]}px`);
+      particle.style.setProperty("--end-y", `${p.end[1]}px`);
+      particle.style.setProperty("--time", `${p.time}ms`);
+      particle.style.setProperty("--scale", `${p.scale}`);
+      particle.style.setProperty("--color", `var(--color-${p.color}, white)`);
+      particle.style.setProperty("--rotate", `${p.rotate}deg`);
+
+      point.classList.add("point");
+      particle.appendChild(point);
+      element.appendChild(particle);
+      setTimeout(() => particle.remove(), t);
+    }
+
+    requestAnimationFrame(() => element.classList.add("active"));
+  };
+
+  const updateEffectPosition = (element) => {
+    if (!containerRef.current || !filterRef.current || !textRef.current) return;
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const pos = element.getBoundingClientRect();
+
+    const styles = {
+      left: `${pos.x - containerRect.x}px`,
+      top: `${pos.y - containerRect.y}px`,
+      width: `${pos.width}px`,
+      height: `${pos.height}px`,
+    };
+    Object.assign(filterRef.current.style, styles);
+    Object.assign(textRef.current.style, styles);
+    textRef.current.innerText = element.innerText;
+  };
+
+  const handleClick = (e, index) => {
+    e.preventDefault();
+    const liEl = e.currentTarget.parentElement;
+    if (activeIndex === index) return;
+
+    setActiveIndex(index);
+    updateEffectPosition(liEl);
+    onSelect?.(items[index], index);
+
+    if (filterRef.current) {
+      const particles = filterRef.current.querySelectorAll(".particle");
+      particles.forEach((p) => filterRef.current.removeChild(p));
+    }
+
+    if (textRef.current) {
+      textRef.current.classList.remove("active");
+
+      void textRef.current.offsetWidth;
+      textRef.current.classList.add("active");
+    }
+
+    if (filterRef.current) {
+      makeParticles(filterRef.current);
+    }
+  };
+
+  const handleKeyDown = (e, index) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      const liEl = e.currentTarget.parentElement;
+      if (liEl) {
+        handleClick(e, index);
+      }
     }
   };
 
   useEffect(() => {
-    const activeItem = navRef.current?.querySelectorAll("li")[activeIndex];
-    if (!activeItem) return undefined;
-    updateEffectPosition(activeItem);
-    textRef.current?.classList.add("is-active");
-
-    if (previousIndexRef.current !== activeIndex && filterRef.current) {
-      textRef.current?.classList.remove("is-active");
-      void textRef.current?.offsetWidth;
-      textRef.current?.classList.add("is-active");
-      filterRef.current.classList.remove("is-active");
-      makeParticles(filterRef.current);
+    if (!navRef.current || !containerRef.current) return;
+    const activeLi = navRef.current.querySelectorAll("li")[activeIndex];
+    if (activeLi) {
+      updateEffectPosition(activeLi);
+      textRef.current?.classList.add("active");
     }
-    previousIndexRef.current = activeIndex;
 
-    const observer = new ResizeObserver(() => updateEffectPosition(activeItem));
-    if (containerRef.current) observer.observe(containerRef.current);
-    return () => observer.disconnect();
+    const resizeObserver = new ResizeObserver(() => {
+      const currentActiveLi = navRef.current?.querySelectorAll("li")[activeIndex];
+      if (currentActiveLi) {
+        updateEffectPosition(currentActiveLi);
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
   }, [activeIndex]);
 
-  useEffect(() => () => timersRef.current.forEach((timer) => window.clearTimeout(timer)), []);
-
   return (
-    <div className="gooey-nav" ref={containerRef}>
-      <nav aria-label="GitHub 热榜周期">
-        <ul ref={navRef} role="tablist">
+    <div className="gooey-nav-container" ref={containerRef}>
+      <nav aria-label={label}>
+        <ul ref={navRef}>
           {items.map((item, index) => (
-            <li key={item.value} className={activeIndex === index ? "is-active" : ""}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeIndex === index}
-                tabIndex={activeIndex === index ? 0 : -1}
-                onClick={() => onSelect?.(item, index)}
-              >
+            <li key={index} className={activeIndex === index ? "active" : ""}>
+              <a href={item.href || "#"} onClick={(e) => handleClick(e, index)} onKeyDown={(e) => handleKeyDown(e, index)}>
                 {item.label}
-              </button>
+              </a>
             </li>
           ))}
         </ul>
       </nav>
-      <span className="gooey-effect gooey-effect--filter" ref={filterRef} aria-hidden="true" />
-      <span className="gooey-effect gooey-effect--text" ref={textRef} aria-hidden="true" />
+      <span className="effect filter" ref={filterRef} />
+      <span className="effect text" ref={textRef} />
     </div>
   );
-}
+};
+
+export default GooeyNav;

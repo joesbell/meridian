@@ -1,0 +1,167 @@
+- generic [ref=e2]:
+  - main [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: Forest Radius
+      - generic [ref=e9]: REAL-TIME SIGNAL CONTROL
+      - time [ref=e12]:
+        - text: "08.04"
+        - generic [ref=e13]: 23:11
+    - generic [ref=e14]:
+      - complementary [ref=e15]:
+        - generic [ref=e16]:
+          - generic [ref=e17]:
+            - generic "DAILY INTEL" [ref=e20]:
+              - generic [ref=e21]:
+                - generic [ref=e23]:
+                  - generic [ref=e24]: D
+                  - generic [ref=e25]: "2"
+                  - generic [ref=e26]: D
+                - generic [ref=e28]:
+                  - generic [ref=e29]: A
+                  - generic [ref=e30]: "5"
+                  - generic [ref=e31]: A
+                - generic [ref=e33]:
+                  - generic [ref=e34]: I
+                  - generic [ref=e35]: R
+                  - generic [ref=e36]: I
+                - generic [ref=e38]:
+                  - generic [ref=e39]: L
+                  - generic [ref=e40]: O
+                  - generic [ref=e41]: L
+                - generic [ref=e43]:
+                  - generic [ref=e44]: "Y"
+                  - generic [ref=e45]: T
+                  - generic [ref=e46]: "Y"
+                - generic [ref=e48]:
+                  - generic [ref=e49]: I
+                  - generic [ref=e50]: "2"
+                  - generic [ref=e51]: I
+                - generic [ref=e53]:
+                  - generic [ref=e54]: "N"
+                  - generic [ref=e55]: C
+                  - generic [ref=e56]: "N"
+                - generic [ref=e58]:
+                  - generic [ref=e59]: T
+                  - generic [ref=e60]: S
+                  - generic [ref=e61]: T
+                - generic [ref=e63]:
+                  - generic [ref=e64]: E
+                  - generic [ref=e65]: S
+                  - generic [ref=e66]: E
+                - generic [ref=e68]:
+                  - generic [ref=e69]: L
+                  - generic [ref=e70]: R
+                  - generic [ref=e71]: L
+            - heading "今日简报" [level=2] [ref=e72]
+          - time [ref=e73]: "--:-- · 全中文"
+        - generic [ref=e75]:
+          - navigation "新闻分类" [ref=e76]:
+            - list [ref=e77]:
+              - listitem [ref=e78] [cursor=pointer]:
+                - link "商业" [ref=e79]:
+                  - /url: "#"
+              - listitem [ref=e80] [cursor=pointer]:
+                - link "科技产品" [ref=e81]:
+                  - /url: "#"
+              - listitem [ref=e82] [cursor=pointer]:
+                - link "AI大模型" [ref=e83]:
+                  - /url: "#"
+              - listitem [ref=e84] [cursor=pointer]:
+                - link "编程" [ref=e85]:
+                  - /url: "#"
+              - listitem [ref=e86] [cursor=pointer]:
+                - link "工具推荐" [ref=e87]:
+                  - /url: "#"
+              - listitem [ref=e88] [cursor=pointer]:
+                - link "健康" [ref=e89]:
+                  - /url: "#"
+          - generic: 商业
+      - generic [ref=e91]:
+        - generic [ref=e92]:
+          - generic [ref=e93]: INTELLIGENCE RADIO
+          - generic [ref=e94]: 00 ACTIVE SIGNALS
+        - generic "信息雷达动画" [ref=e95]:
+          - generic [ref=e105]: AI
+          - generic [ref=e108]: CODE
+          - generic [ref=e111]: MARKET
+          - generic [ref=e114]: HEALTH
+          - generic [ref=e117]: 030°
+          - generic [ref=e118]: 120°
+          - generic [ref=e119]: 240°
+        - img "可跟随鼠标互动的三维电台机器人" [ref=e120]
+      - complementary [ref=e123]:
+        - generic [ref=e124]:
+          - generic [ref=e125]:
+            - generic "OPEN SOURCE" [ref=e128]:
+              - generic [ref=e129]:
+                - generic [ref=e131]:
+                  - generic [ref=e132]: O
+                  - generic [ref=e133]: C
+                  - generic [ref=e134]: O
+                - generic [ref=e136]:
+                  - generic [ref=e137]: P
+                  - generic [ref=e138]: T
+                  - generic [ref=e139]: P
+                - generic [ref=e141]:
+                  - generic [ref=e142]: E
+                  - generic [ref=e143]: "7"
+                  - generic [ref=e144]: E
+                - generic [ref=e146]:
+                  - generic [ref=e147]: "N"
+                  - generic [ref=e148]: A
+                  - generic [ref=e149]: "N"
+                - generic [ref=e151]:
+                  - generic [ref=e152]: S
+                  - generic [ref=e153]: O
+                  - generic [ref=e154]: S
+                - generic [ref=e156]:
+                  - generic [ref=e157]: O
+                  - generic [ref=e158]: "4"
+                  - generic [ref=e159]: O
+                - generic [ref=e161]:
+                  - generic [ref=e162]: U
+                  - generic [ref=e163]: D
+                  - generic [ref=e164]: U
+                - generic [ref=e166]:
+                  - generic [ref=e167]: R
+                  - generic [ref=e168]: "6"
+                  - generic [ref=e169]: R
+                - generic [ref=e171]:
+                  - generic [ref=e172]: C
+                  - generic [ref=e173]: "3"
+                  - generic [ref=e174]: C
+                - generic [ref=e176]:
+                  - generic [ref=e177]: E
+                  - generic [ref=e178]: L
+                  - generic [ref=e179]: E
+            - heading "GitHub 热榜" [level=2] [ref=e180]
+          - time [ref=e181]: "--:-- · TOP —"
+        - generic [ref=e183]:
+          - navigation "GitHub 热榜周期" [ref=e184]:
+            - list [ref=e185]:
+              - listitem [ref=e186] [cursor=pointer]:
+                - link "今日" [ref=e187]:
+                  - /url: "#"
+              - listitem [ref=e188] [cursor=pointer]:
+                - link "本周" [ref=e189]:
+                  - /url: "#"
+              - listitem [ref=e190] [cursor=pointer]:
+                - link "本月" [ref=e191]:
+                  - /url: "#"
+          - generic: 今日
+    - generic "JASON.姜森，AI.software Engineer" [ref=e195]:
+      - article [ref=e196]:
+        - generic:
+          - img "JASON.姜森 个人照片"
+          - generic:
+            - strong: JASON.姜森
+            - generic: AI.software Engineer
+          - generic: joesebll@163.com
+    - generic [ref=e197]:
+      - generic [ref=e198]: 每日 02:00 / 10:00 / 18:00 自动同步
+      - generic [ref=e201]: LIVE DATA ONLY
+  - status "正在抓取首次数据" [ref=e204]:
+    - generic [ref=e205]:
+      - img "正在搜索实时数据" [ref=e206]
+      - strong [ref=e207]: SEARCHING LIVE SIGNALS
+      - generic [ref=e208]: 正在抓取全分类新闻与 GitHub 热榜，请稍候…

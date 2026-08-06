@@ -16,17 +16,21 @@ import { InteractiveRobotSpline } from "./InteractiveRobotSpline";
 import { HighResolutionThinkingOrb } from "./HighResolutionThinkingOrb";
 import FuzzyText from "./FuzzyText";
 import { AsciiSideLabel } from "./AsciiSideLabel";
-import ProfileCard from "./ProfileCard";
+import ProfileCard, { MorphingCube, NewsGlobe } from "./ProfileCard";
 import Shuffle from "./Shuffle";
 import ShinyText from "./ShinyText";
 import SpecularButton from "./SpecularButton";
 import GooeyNav from "./GooeyNav";
 import "./styles.css";
 
-const PERIODS = [
-  ["daily", "今日"],
-  ["weekly", "本周"],
-  ["monthly", "本月"],
+// 新闻分类标签（与 server/sources.mjs 的 CATEGORIES 一致）
+const NEWS_CATEGORIES = ["商业", "科技产品", "AI大模型", "编程", "工具推荐", "健康"];
+
+// GitHub 热榜周期（与 server 抓取的 snapshots key 一致）
+const REPO_PERIODS = [
+  { value: "daily", label: "今日" },
+  { value: "weekly", label: "本周" },
+  { value: "monthly", label: "本月" },
 ];
 
 const SIGNALS = [
@@ -35,6 +39,20 @@ const SIGNALS = [
   { label: "MARKET", x: 62, y: 67, tone: "blue" },
   { label: "HEALTH", x: 30, y: 73, tone: "orange" },
 ];
+
+function LiveClock() {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const date = new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit" }).format(now).replace("/", ".");
+  const time = now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
+
+  return <time dateTime={now.toISOString()}>{date}<small>{time}</small></time>;
+}
 
 function InitialDataOverlay() {
   return (
@@ -47,7 +65,7 @@ function InitialDataOverlay() {
           ariaLabel="正在搜索实时数据"
         />
         <strong>SEARCHING LIVE SIGNALS</strong>
-        <span>正在抓取今日简报与 GitHub 热榜</span>
+        <span>正在抓取全分类新闻与 GitHub 热榜，请稍候…</span>
       </div>
     </div>
   );
@@ -92,8 +110,8 @@ function Offline404({ onRetry, retrying }) {
   );
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url);
+async function fetchJson(url, options) {
+  const response = await fetch(url, options);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = new Error(data.detail || data.error || `请求失败（${response.status}）`);
@@ -331,14 +349,6 @@ function formatTime(value) {
   return `${Math.floor(minutes / 1440)} 天前`;
 }
 
-function formatSync(value) {
-  if (!value) return "等待同步";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "等待同步"
-    : date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
-}
-
 function formatNumber(value) {
   if (value === undefined || value === null || value === "—") return "—";
   const numeric = Number(String(value).replace(/,/g, ""));
@@ -384,7 +394,7 @@ function useRoute() {
   return { path, navigate };
 }
 
-function RailHeader({ code, title, meta, refreshing, onRefresh }) {
+function RailHeader({ code, title, meta, visual }) {
   return (
     <header className="rail-header">
       <div>
@@ -409,30 +419,8 @@ function RailHeader({ code, title, meta, refreshing, onRefresh }) {
         </span>
         <h2 className="rail-title-static">{title}</h2>
       </div>
-      <SpecularButton
-        size="sm"
-        radius={5}
-        tint="#0b0e0d"
-        tintOpacity={0.74}
-        blur={3}
-        textColor="#d9f7ee"
-        lineColor="#7dffd9"
-        baseColor="#394740"
-        intensity={1.35}
-        shineSize={16}
-        shineFade={48}
-        thickness={1.15}
-        speed={0.4}
-        followMouse
-        proximity={220}
-        autoAnimate={false}
-        className="refresh"
-        onClick={onRefresh}
-        disabled={refreshing}
-      >
-        {refreshing ? <CircleNotch className="spin" weight="bold" /> : <ArrowCounterClockwise weight="bold" />}
-        <span>{refreshing ? "抓取中" : "刷新"}</span>
-      </SpecularButton>
+      {visual === "news" && <NewsGlobe />}
+      {visual === "github" && <MorphingCube className="rail-header__canvas" flatten color={0x7fffd8} />}
       <time>{meta}</time>
     </header>
   );
@@ -508,14 +496,6 @@ function RadarStage({ signalCount }) {
         <span>INTELLIGENCE RADIO</span>
         <small>{String(signalCount).padStart(2, "0")} ACTIVE SIGNALS</small>
       </div>
-      <div className="profile-card-slot">
-        <ProfileCard
-          avatarUrl="/assets/profile/jason-jiang-night-portrait.jpg"
-          name="JASON.姜森"
-          title="AI.software Engineer"
-          email="joesebll@163.com"
-        />
-      </div>
       <div className="radar" aria-label="信息雷达动画">
         <div className="radar__ring radar__ring--outer" />
         <div className="radar__ring radar__ring--middle" />
@@ -540,13 +520,30 @@ function RadarStage({ signalCount }) {
   );
 }
 
-function Detail({ item, type, onBack }) {
+function Detail({ item, type, onBack, prefetched }) {
   const isNews = type === "news";
-  const [content, setContent] = useState(null);
-  const [state, setState] = useState({ loading: true, error: "" });
+  const [content, setContent] = useState(prefetched || null);
+  const [state, setState] = useState({ loading: !prefetched, error: "" });
+  const [zoomed, setZoomed] = useState(false);
   const cardFrameRef = useRef(null);
+  // 与列表卡片保持一致：优先用抓取时确定的封面图，详情接口的图只做兜底
+  const detailImage = isNews ? proxiedImage(item.image || content?.image || sourceFavicon(item.url), item.url) : "";
+
+  // 图片放大后按 Esc 关闭
+  useEffect(() => {
+    if (!zoomed) return undefined;
+    const onKey = (event) => event.key === "Escape" && setZoomed(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoomed]);
 
   useEffect(() => {
+    // 滚动分页接口已内联返回摘要详情 → 直接用缓存，不再请求
+    if (prefetched) {
+      setContent(prefetched);
+      setState({ loading: false, error: "" });
+      return undefined;
+    }
     let cancelled = false;
     setState({ loading: true, error: "" });
     setContent(null);
@@ -562,7 +559,7 @@ function Detail({ item, type, onBack }) {
     return () => {
       cancelled = true;
     };
-  }, [isNews, item.url]);
+  }, [isNews, item.url, prefetched]);
 
   const moveSpotlight = (event) => {
     const frame = cardFrameRef.current;
@@ -625,9 +622,9 @@ function Detail({ item, type, onBack }) {
             <a className="source-link" href={item.url} target="_blank" rel="noreferrer">核验原始来源 <ArrowUpRight weight="bold" /></a>
           </div>
           <h1>{isNews ? content?.title || item.title : item.name}</h1>
-          {isNews && <img src={proxiedImage(content?.image || item.image || sourceFavicon(item.url), item.url)} alt="" onError={(event) => onImageError(item, event)} />}
+          {isNews && <img src={detailImage} alt="" onClick={() => setZoomed(true)} onError={(event) => onImageError(item, event)} />}
           <p className="detail-card__lead">{item.summary || item.description}</p>
-          {state.loading && <div className="detail-state"><CircleNotch className="spin" /> {isNews ? "正在读取本地缓存；如未命中，Scrapling 将抓取并翻译原文…" : "正在读取本地 README 缓存；如未命中，Scrapling 将抓取并翻译…"}</div>}
+          {state.loading && <div className="detail-state"><CircleNotch className="spin" /> 正在从数据库读取…</div>}
           {state.error && <LiveError title={isNews ? "原文暂不可读" : "README 暂不可读"} detail={state.error} onRetry={() => window.location.reload()} />}
           {content?.paragraphs?.length > 0 && <div className="article-body">{content.paragraphs.map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 16)}`}>{paragraph}</p>)}</div>}
           {!isNews && <dl className="repo-stats"><div><dt>总 Star</dt><dd>{formatNumber(item.totalStars)}</dd></div><div><dt>今日增长</dt><dd>{formatNumber(item.growth?.daily)}</dd></div><div><dt>本周增长</dt><dd>{formatNumber(item.growth?.weekly)}</dd></div><div><dt>本月增长</dt><dd>{formatNumber(item.growth?.monthly)}</dd></div></dl>}
@@ -643,105 +640,162 @@ function Detail({ item, type, onBack }) {
           )}
           <p className="detail-note">
             {isNews
-              ? "标题、摘要与正文来自实时原文；后台会在首页加载后预抓取、翻译并缓存。"
-              : "榜单来自 GitHub Trending；详情来自对应仓库 README，并在非中文时完成中文本地化后缓存。"}
-            {content?.translationProvider ? ` 当前翻译：${content.translationProvider}。` : ""}
+              ? `来源：${item.source}。数据来自定时抓取批次，详情由大模型理解原文后生成中文要点摘要。`
+              : "榜单来自 GitHub Trending；详情由大模型理解对应仓库 README 后生成中文要点摘要。"}
+            {content?.translationProvider ? ` 当前引擎：${content.translationProvider}。` : ""}
           </p>
         </article>
       </div>
+      {zoomed && detailImage && (
+        <div className="image-lightbox" onClick={() => setZoomed(false)}>
+          <img src={detailImage} alt="" />
+        </div>
+      )}
     </main>
   );
 }
 
 export function App() {
   const { path, navigate } = useRoute();
-  const [news, setNews] = useState([]);
-  const [repos, setRepos] = useState([]);
-  const [period, setPeriod] = useState("daily");
-  const [newsUpdatedAt, setNewsUpdatedAt] = useState("");
-  const [repoUpdatedAt, setRepoUpdatedAt] = useState("");
-  const [refreshing, setRefreshing] = useState({ news: false, github: false });
-  const [errors, setErrors] = useState({ news: "", github: "" });
+  const [showProfile, setShowProfile] = useState(false);
+
+  // 名片浮层打开时按 Esc 关闭
+  useEffect(() => {
+    if (!showProfile) return undefined;
+    const onKey = (event) => event.key === "Escape" && setShowProfile(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showProfile]);
+
+  // 数据状态：feed 包含所有分类新闻 + GitHub 三周期仓库
+  const [feed, setFeed] = useState({ available: false, news: {}, github: {}, timeLabel: null, updatedAt: null });
+  const [activeCategory, setActiveCategory] = useState(NEWS_CATEGORIES[0]);
+  const [repoPeriod, setRepoPeriod] = useState(REPO_PERIODS[0].value);
   const [initialLoading, setInitialLoading] = useState(true);
   const [offlinePage, setOfflinePage] = useState(false);
+  const [error, setError] = useState("");
   const shellRef = useRef(null);
-  const periodRef = useRef(period);
-  const initialSettledRef = useRef({ news: null, github: null });
+  // 最新的 feed（供轮询回调读取，避免闭包拿到旧值）
+  const feedRef = useRef(feed);
+  feedRef.current = feed;
+  // 定时抓取窗口轮询状态
+  const scheduledRef = useRef({ hour: -1, timer: null, baseline: null });
+  // 滚动分页：每个分类独立的追加条目/游标/加载状态（切换分类不丢失）
+  const [pagedNews, setPagedNews] = useState({});
+  const pagedNewsRef = useRef(pagedNews);
+  pagedNewsRef.current = pagedNews;
+  // 分页接口内联返回的中文摘要详情缓存：详情页秒开，/api/article 兜底
+  const detailCacheRef = useRef({});
 
-  const markInitialSettled = (source, outcome) => {
-    initialSettledRef.current[source] = outcome;
-    const { news: newsOutcome, github: githubOutcome } = initialSettledRef.current;
-    if (newsOutcome && githubOutcome) {
-      const totalItems = newsOutcome.count + githubOutcome.count;
-      setOfflinePage(totalItems === 0 && (newsOutcome.offline || githubOutcome.offline || navigator.onLine === false));
-      setInitialLoading(false);
-    }
-  };
-
-  const loadNews = async (force = false, isInitial = false) => {
-    setRefreshing((value) => ({ ...value, news: true }));
-    let outcome = { count: 0, offline: false };
+  // 从 /api/feed 加载数据，返回响应（轮询用它判断新数据是否入库）
+  const loadFeed = async (isInitial = false) => {
     try {
-      const data = await fetchJson(`/api/news${force ? "?force=1" : ""}`);
-      const items = Array.isArray(data.items) ? data.items : [];
-      if (items.length === 0) throw new Error("新闻源暂未返回有效内容");
-      setNews(items);
-      setNewsUpdatedAt(data.generatedAt);
-      setErrors((value) => ({ ...value, news: "" }));
-      outcome = { count: items.length, offline: false };
-    } catch (error) {
-      setErrors((value) => ({ ...value, news: error.message }));
-      outcome = { count: news.length, offline: isOfflineError(error) };
-    } finally {
-      setRefreshing((value) => ({ ...value, news: false }));
-      if (isInitial) markInitialSettled("news", outcome);
+      const data = await fetchJson("/api/feed");
+      setFeed(data);
+      setError("");
+      setOfflinePage(false);
+      if (data.available) {
+        setInitialLoading(false);
+      }
+      return data;
+    } catch (err) {
+      if (isOfflineError(err)) {
+        setOfflinePage(true);
+      }
+      setError(err.message);
+      return null;
     }
   };
 
-  const loadRepos = async (selectedPeriod = period, force = false, isInitial = false) => {
-    setRefreshing((value) => ({ ...value, github: true }));
-    let outcome = { count: 0, offline: false };
+  // 滚动触底加载当前分类的下一页（5 条 + 中文摘要详情）。
+  // 不足 5 条或返回空 → 标记 exhausted，之后不再请求；失败静默，下次触底重试。
+  const loadMoreNews = async (category) => {
+    const state = pagedNewsRef.current[category] || { items: [], cursor: feedRef.current.newsCursors?.[category] || null, exhausted: false, loading: false };
+    if (state.loading || state.exhausted) return;
+    const loadingState = { ...state, loading: true };
+    setPagedNews((prev) => ({ ...prev, [category]: loadingState }));
+    pagedNewsRef.current = { ...pagedNewsRef.current, [category]: loadingState };
     try {
-      const data = await fetchJson(`/api/github?period=${selectedPeriod}${force ? "&force=1" : ""}`);
-      const items = Array.isArray(data.items) ? data.items : [];
-      if (items.length === 0) throw new Error("GitHub 当前周期暂未返回有效项目");
-      setRepos(items);
-      setRepoUpdatedAt(data.generatedAt);
-      setErrors((value) => ({ ...value, github: "" }));
-      outcome = { count: items.length, offline: false };
-    } catch (error) {
-      setErrors((value) => ({ ...value, github: error.message }));
-      outcome = { count: repos.length, offline: isOfflineError(error) };
-    } finally {
-      setRefreshing((value) => ({ ...value, github: false }));
-      if (isInitial) markInitialSettled("github", outcome);
+      const query = state.cursor ? `&cursor=${encodeURIComponent(state.cursor)}` : "";
+      const data = await fetchJson(`/api/news/page?category=${encodeURIComponent(category)}${query}`);
+      Object.assign(detailCacheRef.current, data.details || {});
+      const existing = new Set(state.items.map((item) => item.id));
+      const fresh = (data.items || []).filter((item) => !existing.has(item.id));
+      const next = {
+        items: [...state.items, ...fresh],
+        cursor: data.nextCursor || state.cursor,
+        exhausted: Boolean(data.exhausted) || fresh.length === 0,
+        loading: false,
+      };
+      setPagedNews((prev) => ({ ...prev, [category]: next }));
+      pagedNewsRef.current = { ...pagedNewsRef.current, [category]: next };
+    } catch {
+      // 静默失败：重置 loading，下次触底自动重试
+      const reset = { ...state, loading: false };
+      setPagedNews((prev) => ({ ...prev, [category]: reset }));
+      pagedNewsRef.current = { ...pagedNewsRef.current, [category]: reset };
     }
   };
 
-  const retryInitialLoad = () => {
-    setOfflinePage(false);
-    setInitialLoading(true);
-    initialSettledRef.current = { news: null, github: null };
-    loadRepos("daily", true, true);
-    window.setTimeout(() => loadNews(true, true), 180);
+  // 新闻列表滚动：距底部 200px 内触发下一页请求
+  const handleNewsScroll = (event) => {
+    const el = event.currentTarget;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 200) {
+      loadMoreNews(activeCategory);
+    }
   };
 
+  // 初始加载：5 秒轮询，拿到数据后立即停止
   useEffect(() => {
-    loadRepos("daily", false, true);
-    const newsTimer = window.setTimeout(() => loadNews(false, true), 180);
-    const refreshTimer = window.setInterval(() => {
-      loadNews(true);
-      loadRepos(periodRef.current, true);
-    }, 2 * 60 * 60 * 1000);
+    let stopped = false;
+    const tick = async () => {
+      const data = await loadFeed(true);
+      if (data?.available && !stopped) {
+        stopped = true;
+        clearInterval(timer);
+      }
+    };
+    tick();
+    const timer = setInterval(tick, 5000);
     return () => {
-      window.clearTimeout(newsTimer);
-      window.clearInterval(refreshTimer);
+      stopped = true;
+      clearInterval(timer);
     };
   }, []);
 
+  // 定时抓取轮询：02:00 / 10:00 / 18:00 整点后 5 分钟内每 30 秒查一次，
+  // 发现 updatedAt 变化（新数据入库）即停；窗口结束自动清理
   useEffect(() => {
-    periodRef.current = period;
-  }, [period]);
+    const tick = () => {
+      const now = new Date();
+      const inWindow = [2, 10, 18].includes(now.getHours()) && now.getMinutes() < 5;
+      const state = scheduledRef.current;
+      if (inWindow && state.hour !== now.getHours()) {
+        state.hour = now.getHours();
+        state.baseline = feedRef.current.updatedAt;
+        if (state.timer) clearInterval(state.timer);
+        state.timer = setInterval(async () => {
+          const data = await loadFeed();
+          if (data?.updatedAt && data.updatedAt !== scheduledRef.current.baseline) {
+            clearInterval(scheduledRef.current.timer);
+            scheduledRef.current.timer = null;
+          }
+        }, 30 * 1000);
+      } else if (!inWindow && state.hour !== -1) {
+        state.hour = -1;
+        if (state.timer) {
+          clearInterval(state.timer);
+          state.timer = null;
+        }
+      }
+    };
+    tick();
+    const guard = setInterval(tick, 30 * 1000);
+    return () => {
+      clearInterval(guard);
+      if (scheduledRef.current.timer) clearInterval(scheduledRef.current.timer);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
@@ -757,6 +811,42 @@ export function App() {
     return () => context.revert();
   }, []);
 
+  // 所有新闻的扁平查找表（用于详情页查找）：首屏 10 条 + 滚动分页追加的条目，按 id 去重
+  const allNews = useMemo(() => {
+    const seen = new Set();
+    const items = [];
+    for (const cat of Object.keys(feed.news || {})) {
+      for (const item of [...(feed.news[cat] || []), ...(pagedNews[cat]?.items || [])]) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          items.push(item);
+        }
+      }
+    }
+    return items;
+  }, [feed, pagedNews]);
+
+  const githubRepos = feed.github?.[repoPeriod] || [];
+  // 所有周期的仓库合集（用于详情页查找）
+  const allRepos = useMemo(
+    () => REPO_PERIODS.flatMap((p) => feed.github?.[p.value] || []),
+    [feed],
+  );
+  // 当前分类的完整列表：首屏 + 分页追加（去重）
+  const activeNews = useMemo(() => {
+    const seen = new Set();
+    const merged = [];
+    for (const item of [...(feed.news?.[activeCategory] || []), ...(pagedNews[activeCategory]?.items || [])]) {
+      if (!seen.has(item.id)) {
+        seen.add(item.id);
+        merged.push(item);
+      }
+    }
+    return merged;
+  }, [feed, pagedNews, activeCategory]);
+  const activePaging = pagedNews[activeCategory];
+
+  // 卡片交互效果
   useEffect(() => {
     if (window.matchMedia("(pointer: coarse)").matches) return undefined;
     const tiltedCards = shellRef.current?.querySelectorAll(".tilted-card") || [];
@@ -843,14 +933,21 @@ export function App() {
       });
     });
     return () => cleanups.forEach((cleanup) => cleanup());
-  }, [news, repos]);
+  }, [activeNews, githubRepos]);
 
+  // 详情页查找
   const detail = useMemo(() => {
     const [kind, id] = path.split("/").filter(Boolean);
-    if (kind === "news") return { type: "news", item: news.find((item) => item.id === decodeURIComponent(id)) };
-    if (kind === "repo") return { type: "repo", item: repos.find((item) => item.id === decodeURIComponent(id)) };
+    if (kind === "news") return { type: "news", item: allNews.find((item) => item.id === decodeURIComponent(id)) };
+    if (kind === "repo") return { type: "repo", item: allRepos.find((item) => item.id === decodeURIComponent(id)) };
     return null;
-  }, [path, news, repos]);
+  }, [path, allNews, allRepos]);
+
+  const retryInitialLoad = () => {
+    setOfflinePage(false);
+    setInitialLoading(true);
+    loadFeed(true);
+  };
 
   if (offlinePage) {
     return (
@@ -866,14 +963,16 @@ export function App() {
     return (
       <>
         <InteractiveBackdrop uniformGrid />
-        <Detail item={detail.item} type={detail.type} onBack={() => navigate("/")} />
+        <Detail
+          item={detail.item}
+          type={detail.type}
+          prefetched={detailCacheRef.current[detail.item.url]}
+          onBack={() => navigate("/")}
+        />
         {initialLoading && <InitialDataOverlay />}
       </>
     );
   }
-
-  const now = new Date();
-  const date = new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit" }).format(now).replace("/", ".");
 
   return (
     <>
@@ -893,44 +992,90 @@ export function App() {
             />
           </div>
           <div className="masthead__signal"><Pulse weight="fill" /> REAL-TIME SIGNAL CONTROL</div>
-          <time>{date}<small>{now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}</small></time>
+          <LiveClock />
         </header>
 
         <section className="control-grid">
           <aside className="rail rail--news">
-            <RailHeader code="DAILY INTEL" title="今日简报" meta={`${formatSync(newsUpdatedAt)} · 全中文`} refreshing={refreshing.news} onRefresh={() => loadNews(true)} />
-            <div className="rail__scroll news-stack">
-              {news.map((item, index) => <NewsCard key={item.id} item={item} index={index} onOpen={(record) => navigate(`/news/${encodeURIComponent(record.id)}`)} />)}
-              {errors.news && <LiveError title="新闻信号中断" detail={errors.news} onRetry={() => loadNews(true)} />}
+            <RailHeader
+              code="DAILY INTEL"
+              title="今日简报"
+              meta={`${feed.timeLabel || "--:--"} · 全中文`}
+              visual="news"
+            />
+            <div className="category-tabs">
+              <GooeyNav
+                items={NEWS_CATEGORIES.map((cat) => ({ label: cat, value: cat }))}
+                initialActiveIndex={NEWS_CATEGORIES.indexOf(activeCategory)}
+                onSelect={(item) => setActiveCategory(item.value)}
+                label="新闻分类"
+              />
+            </div>
+            <div className="rail__scroll news-stack" onScroll={handleNewsScroll}>
+              {activeNews.map((item, index) => (
+                <NewsCard key={item.id} item={item} index={index} onOpen={(record) => navigate(`/news/${encodeURIComponent(record.id)}`)} />
+              ))}
+              {activePaging?.loading && (
+                <div className="paging-hint"><CircleNotch className="spin" weight="bold" /> 正在加载更多…</div>
+              )}
+              {activePaging?.exhausted && activeNews.length > 0 && (
+                <div className="paging-hint">已加载该分类全部内容</div>
+              )}
+              {activeNews.length === 0 && feed.available && (
+                <LiveError title="该分类暂无数据" detail="当前抓取批次中此分类未取得有效内容，下个抓取窗口后自动恢复。" onRetry={() => loadFeed()} />
+              )}
+              {error && <LiveError title="新闻信号中断" detail={error} onRetry={() => loadFeed()} />}
             </div>
           </aside>
 
-          <RadarStage signalCount={news.length + repos.length} />
+          <RadarStage signalCount={allNews.length + githubRepos.length} />
 
           <aside className="rail rail--github">
-            <RailHeader code="OPEN SOURCE" title="GitHub 热榜" meta={`${formatSync(repoUpdatedAt)} · TOP ${repos.length || "—"}`} refreshing={refreshing.github} onRefresh={() => loadRepos(period, true)} />
-            <div className="period-tabs">
+            <RailHeader
+              code="OPEN SOURCE"
+              title="GitHub 热榜"
+              meta={`${feed.timeLabel || "--:--"} · TOP ${githubRepos.length || "—"}`}
+              visual="github"
+            />
+            <div className="category-tabs">
               <GooeyNav
-                items={PERIODS.map(([value, label]) => ({ value, label }))}
-                activeIndex={Math.max(0, PERIODS.findIndex(([value]) => value === period))}
-                onSelect={(item) => {
-                  setPeriod(item.value);
-                  loadRepos(item.value);
-                }}
+                items={REPO_PERIODS}
+                initialActiveIndex={REPO_PERIODS.findIndex((p) => p.value === repoPeriod)}
+                onSelect={(item) => setRepoPeriod(item.value)}
+                label="GitHub 热榜周期"
               />
             </div>
             <div className="rail__scroll repo-stack">
-              {repos.map((item) => <RepoCard key={item.id} item={item} onOpen={(record) => navigate(`/repo/${encodeURIComponent(record.id)}`)} />)}
-              {errors.github && <LiveError title="GitHub 信号中断" detail={errors.github} onRetry={() => loadRepos(period, true)} />}
+              {githubRepos.map((item) => (
+                <RepoCard key={item.id} item={item} onOpen={(record) => navigate(`/repo/${encodeURIComponent(record.id)}`)} />
+              ))}
+              {githubRepos.length === 0 && feed.available && (
+                <LiveError title="GitHub 榜单暂无数据" detail="当前抓取批次中 GitHub Trending 未取得有效内容，下个抓取窗口后自动恢复。" onRetry={() => loadFeed()} />
+              )}
             </div>
           </aside>
         </section>
 
         <footer className="site-footer">
-          <span><Pulse weight="fill" /> 两小时自动同步 · 手动刷新会重新触发 Scrapling</span>
-          <span>LIVE DATA ONLY <LinkSimple weight="bold" /></span>
+          <span><Pulse weight="fill" /> 每日 02:00 / 10:00 / 18:00 自动同步</span>
+          <span className="site-footer__right">
+            <button type="button" className="byline" onClick={() => setShowProfile(true)}>by：Jason</button>
+            LIVE DATA ONLY <LinkSimple weight="bold" />
+          </span>
         </footer>
       </main>
+      {showProfile && (
+        <div className="profile-overlay" onClick={() => setShowProfile(false)}>
+          <div className="profile-overlay__card" onClick={(event) => event.stopPropagation()}>
+            <ProfileCard
+              avatarUrl="/assets/profile/jason-jiang-night-portrait.jpg"
+              name="JASON.姜森"
+              title="AI.AGENT Engineer"
+              email="joesebll@163.com"
+            />
+          </div>
+        </div>
+      )}
       {initialLoading && <InitialDataOverlay />}
     </>
   );

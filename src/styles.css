@@ -354,6 +354,15 @@ button {
   padding: 0 22px;
 }
 
+/* 主页面锁定为视口高度：页级不滚动，滚动只发生在两侧栏内部 */
+.site-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
 .masthead {
   height: 72px;
   display: grid;
@@ -439,12 +448,16 @@ button {
 .control-grid {
   display: grid;
   grid-template-columns: minmax(390px, 1.12fr) minmax(440px, 0.98fr) minmax(400px, 1.12fr);
-  min-height: calc(100vh - 102px);
+  flex: 1;
+  min-height: 0;
   border-inline: 1px solid var(--line);
 }
 
 .rail {
+  display: flex;
   min-width: 0;
+  min-height: 0;
+  flex-direction: column;
   padding: 22px 18px 16px;
   background: rgba(8, 12, 13, 0.48);
   backdrop-filter: blur(10px);
@@ -475,6 +488,18 @@ button {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
+  padding-right: 86px;
+}
+
+.rail-header__canvas {
+  position: absolute;
+  top: 5px;
+  right: 2px;
+  z-index: 1;
+  display: block;
+  width: 78px;
+  height: 68px;
+  pointer-events: none;
 }
 
 .rail-header h2 {
@@ -519,37 +544,29 @@ button {
   color: #666d6b;
 }
 
-.refresh.specular-button {
-  align-self: start;
-  margin-top: 8px;
-  padding: 10px 14px;
-  font: 600 11px/1 "DM Mono", monospace;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.refresh.specular-button svg {
-  width: 14px;
-  height: 14px;
-}
-
-.refresh:disabled {
-  opacity: 0.55;
-}
-
 .spin {
   animation: spin 0.8s linear infinite;
 }
 
+/* 滚动分页提示：加载中 / 已到底 */
+.paging-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 0 4px;
+  color: #5d6c67;
+  font: 500 10px/1 "DM Mono", monospace;
+  letter-spacing: 0.08em;
+}
+
 .rail__scroll {
-  height: calc(100vh - 244px);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-color: var(--line) transparent;
   scrollbar-width: thin;
-}
-
-.rail--github .rail__scroll {
-  height: calc(100vh - 302px);
 }
 
 .news-stack,
@@ -736,6 +753,12 @@ button {
 
 .period-tabs .gooey-nav {
   background: #0b0e0d;
+}
+
+/* 分类/周期标签栏（内部为 GooeyNav 组件，样式在 GooeyNav.css） */
+.category-tabs {
+  margin: 10px 2px 0;
+  padding: 2px;
 }
 
 .repo-card {
@@ -972,7 +995,7 @@ button {
 .center-stage {
   position: relative;
   min-width: 0;
-  min-height: calc(100vh - 102px);
+  min-height: 0;
   overflow: hidden;
   background: rgba(6, 10, 11, 0.1);
 }
@@ -1031,13 +1054,54 @@ button {
   color: var(--orange);
 }
 
-.profile-card-slot {
-  position: absolute;
-  top: 14px;
-  right: 18px;
-  left: auto;
-  z-index: 6;
-  width: clamp(85px, 14.5%, 94px);
+/* Jason 名片：不再常驻底部，点击 footer 的 by：Jason 后以旋转动画浮层呈现 */
+.byline {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.byline:hover {
+  color: var(--mint);
+}
+
+.profile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 10, 8, 0.72);
+  backdrop-filter: blur(8px);
+  perspective: 1200px;
+}
+
+.profile-overlay__card {
+  width: clamp(240px, 26vw, 330px);
+  animation: profile-spin-in 1.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes profile-spin-in {
+  from {
+    opacity: 0;
+    transform: rotateY(-360deg) rotateZ(-8deg) scale(0.62);
+  }
+  to {
+    opacity: 1;
+    transform: rotateY(0deg) rotateZ(0deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-overlay__card {
+    animation: none;
+  }
 }
 
 .radar {
@@ -1278,6 +1342,10 @@ button {
   gap: 5px;
 }
 
+.site-footer__right {
+  gap: 14px;
+}
+
 .site-footer span:first-child svg {
   color: var(--mint);
 }
@@ -1286,19 +1354,26 @@ button {
   position: relative;
   z-index: 3;
   display: grid;
-  grid-template-columns: minmax(0, 900px);
-  min-height: 100vh;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   justify-content: center;
   align-content: start;
-  padding: 30px 24px 80px;
+  padding: 30px 0 28px;
+  overflow: hidden;
   background: transparent;
 }
 
 .detail-toolbar {
   display: flex;
-  width: 100%;
+  width: 76vw;
   align-items: center;
   justify-content: flex-start;
+  justify-self: center;
 }
 
 .detail-toolbar .back-button {
@@ -1311,10 +1386,12 @@ button {
   --glow-angle: 135deg;
   --glow-opacity: 0.58;
   position: relative;
-  width: 100%;
-  margin-top: 26px;
+  width: 76vw;
+  min-height: 0;
+  margin-top: 22px;
   padding: 2px;
   border-radius: 10px;
+  justify-self: center;
   box-shadow:
     0 28px 70px rgba(28, 69, 58, 0.16),
     0 0 34px rgba(34, 186, 147, 0.12);
@@ -1346,7 +1423,14 @@ button {
   --spot-opacity: 0.24;
   position: relative;
   width: 100%;
-  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-color: rgba(20, 129, 101, 0.62) rgba(18, 45, 37, 0.08);
+  scrollbar-width: thin;
   padding: clamp(36px, 5vw, 64px);
   border: 1px solid rgba(33, 92, 76, 0.2);
   border-radius: 8px;
@@ -1355,6 +1439,24 @@ button {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.88),
     0 16px 40px rgba(43, 78, 68, 0.1);
+}
+
+.detail-card::-webkit-scrollbar {
+  width: 9px;
+}
+
+.detail-card::-webkit-scrollbar-track {
+  background: rgba(18, 45, 37, 0.08);
+}
+
+.detail-card::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(247, 251, 248, 0.96);
+  border-radius: 999px;
+  background: rgba(20, 129, 101, 0.62);
+}
+
+.detail-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(11, 118, 93, 0.82);
 }
 
 .detail-card.spotlight-card::before {
@@ -1384,23 +1486,44 @@ button {
 }
 
 .detail-card h1 {
-  max-width: 24ch;
   margin: 20px 0 30px;
   color: #12211c;
   font-size: clamp(29px, 3.15vw, 40px);
   font-weight: 750;
   line-height: 1.08;
   letter-spacing: -0.035em;
-  text-wrap: balance;
 }
 
 .detail-card > img {
-  width: 100%;
-  max-height: 520px;
-  object-fit: cover;
+  float: right;
+  width: min(42%, 460px);
+  height: auto;
+  margin: 6px 0 22px 30px;
   border: 1px solid rgba(33, 92, 76, 0.22);
   border-radius: 5px;
   box-shadow: 0 18px 44px rgba(20, 55, 45, 0.13);
+  cursor: zoom-in;
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4vmin;
+  background: rgba(9, 20, 16, 0.78);
+  backdrop-filter: blur(6px);
+  cursor: zoom-out;
+}
+
+.image-lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.42);
 }
 
 .detail-card__lead {
@@ -1500,6 +1623,7 @@ button {
 }
 
 .detail-note {
+  clear: both;
   margin-top: 28px;
   color: #61716b;
   font-size: 12px;
@@ -1591,9 +1715,7 @@ button {
   }
 
   .profile-card-slot {
-    top: 14px;
-    right: 14px;
-    width: 79px;
+    width: 68px;
   }
 
   .radar {
@@ -1628,7 +1750,16 @@ button {
 
   .control-grid {
     grid-template-columns: 1fr 1fr;
+    flex: none;
     border-inline: 0;
+  }
+
+  /* 窄屏为堆叠布局，恢复页级滚动 */
+  .site-shell {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
   }
 
   .center-stage {
@@ -1668,9 +1799,7 @@ button {
   }
 
   .profile-card-slot {
-    top: 14px;
-    right: 18px;
-    width: 87px;
+    width: 76px;
   }
 }
 
@@ -1737,10 +1866,7 @@ button {
   }
 
   .profile-card-slot {
-    top: 10px;
-    right: 12px;
-    left: auto;
-    width: 69px;
+    width: 62px;
   }
 
   .news-card {
@@ -1774,6 +1900,12 @@ button {
 
   .detail-card {
     padding: 24px 18px;
+  }
+
+  .detail-card > img {
+    float: none;
+    width: 100%;
+    margin: 0 0 20px;
   }
 
   .repo-stats {

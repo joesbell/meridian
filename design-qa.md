@@ -59,6 +59,20 @@
 - 将文章末尾的来源链接移动到卡片顶部右侧，与类别标签构成稳定的顶部工具行。
 - 保留真实外链、图标、颜色与新窗口打开行为，没有重复入口。
 
+### Iteration 4 — 百分比宽度与卡片内滚动
+
+- 最新源图：`/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/radius-live-edition/design/detail-responsive-source.png`。
+- 最新实现：`/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/radius-live-edition/design/detail-responsive-implementation.png`。
+- 同屏并排对比：`/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/radius-live-edition/design/detail-responsive-comparison.png`。
+- CSS 视口：1863 × 1354；调整前截图为 1848 × 1343 px（页面原生滚动条占用截图区域），调整后截图为 1863 × 1354 px。并排图将两侧等比例放入 1863 × 1354 的同尺寸面板，设备像素比不变。
+- P1 已解决：正文壳层由固定 900px 改为视口宽度的 92%，宽屏中的无效留白显著减少，同时保留 4% 的左右背景呼吸区。
+- P1 已解决：详情页固定为一屏高，正文卡片占用工具栏下方剩余空间；页面文档高度从 2767px 收敛为 1354px。
+- P1 已解决：超出内容现在只在 `.detail-card` 内滚动。实测 `clientHeight=1233px`、`scrollHeight=2006px`、`overflow-y=auto`。
+- P2 已解决：鼠标在卡片内滚动 760px 后，`detail-card.scrollTop=760`，同时 `window.scrollY=0`，证明背景和返回按钮不会跟随正文漂移。
+- P2 已解决：增加窄青绿色滚动条，颜色与现有 Spotlight、Border Glow 主色一致，没有引入新的蓝色系统态。
+- 全视图对比显示，原有浅色信息卡、标题层级、图片比例、返回按钮、统一亮网格背景和顶部原始来源入口均保持不变。
+- 本轮无需额外局部裁切：宽度、固定高度和滚动条在完整桌面视图中均清晰可判定。
+
 ## Build verification
 
 - `npm run build`：通过。
