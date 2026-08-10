@@ -21,6 +21,7 @@ ssh "$SERVER" "cd $REMOTE_DIR \
   && docker run -d --name radius-live --restart unless-stopped \
        --env-file .env -v radius-data:/app/data \
        -p 127.0.0.1:4173:4173 radius-live >/dev/null \
-  && sleep 8 && docker ps --format '容器状态: {{.Status}}'"
+  && sleep 8 && docker ps --format '容器状态: {{.Status}}' \
+  && docker image prune -f >/dev/null && echo '已清理旧镜像层'"
 
 echo "✅ 部署完成 → https://joesbell.top"
