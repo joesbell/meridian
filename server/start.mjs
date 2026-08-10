@@ -40,6 +40,13 @@ async function serveStatic(request, response) {
   const body = await readFile(file);
   response.statusCode = 200;
   response.setHeader("content-type", mime[path.extname(file)] || "application/octet-stream");
+  // vite 产物文件名带哈希指纹（index-B7x9k2.js），内容变了文件名就变，可以永久缓存；
+  // public/ 原样拷贝的文件（如机器人场景）和 index.html 不带指纹，每次回源校验
+  const hashed = /-[0-9A-Za-z_-]{8}\.[^.]+$/.test(path.basename(file));
+  response.setHeader(
+    "cache-control",
+    hashed ? "public, max-age=31536000, immutable" : "no-cache",
+  );
   response.end(body);
 }
 
