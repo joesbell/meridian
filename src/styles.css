@@ -379,12 +379,12 @@ button {
   gap: 9px;
 }
 
-.brand__sparkle {
-  width: 19px;
-  height: 19px;
-  color: var(--mint);
+.brand__radar {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
   filter: drop-shadow(0 0 9px rgba(125, 255, 217, 0.42));
-  animation: brandSparkle 2.8s ease-in-out infinite;
+  animation: brandRadarPulse 2.8s ease-in-out infinite;
 }
 
 .brand strong {
@@ -1668,15 +1668,15 @@ button {
   50% { opacity: 0.25; transform: scale(0.82); }
 }
 
-@keyframes brandSparkle {
+@keyframes brandRadarPulse {
   0%,
   100% {
     opacity: 0.72;
-    transform: rotate(0deg) scale(0.9);
+    transform: scale(0.92);
   }
   50% {
     opacity: 1;
-    transform: rotate(45deg) scale(1.08);
+    transform: scale(1.06);
   }
 }
 

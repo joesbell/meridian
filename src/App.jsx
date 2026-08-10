@@ -10,7 +10,6 @@ import {
   LinkSimple,
   Pulse,
   Star,
-  StarFour,
 } from "@phosphor-icons/react";
 import { InteractiveRobotSpline } from "./InteractiveRobotSpline";
 import { HighResolutionThinkingOrb } from "./HighResolutionThinkingOrb";
@@ -977,9 +976,16 @@ export function App() {
       <main className="site-shell" ref={shellRef}>
         <header className="masthead">
           <div className="brand">
-            <StarFour className="brand__sparkle" weight="fill" aria-hidden="true" />
+            <img
+              className="brand__radar"
+              src="/assets/brand/techtide-radar.png"
+              width="24"
+              height="24"
+              alt=""
+              aria-hidden="true"
+            />
             <ShinyText
-              text="Forest Radius"
+              text="TechTide"
               className="brand__shiny"
               speed={2.4}
               color="#aab4b0"
