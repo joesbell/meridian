@@ -21,6 +21,7 @@ import Shuffle from "./Shuffle";
 import ShinyText from "./ShinyText";
 import SpecularButton from "./SpecularButton";
 import GooeyNav from "./GooeyNav";
+import GradientText from "./GradientText";
 import "./styles.css";
 
 // 新闻分类标签（与 server/sources.mjs 的 CATEGORIES 一致）
@@ -473,7 +474,7 @@ function LiveError({ title, detail, onRetry }) {
   );
 }
 
-function RadarStage({ signalCount }) {
+function RadarStage() {
   const rootRef = useRef(null);
 
   useLayoutEffect(() => {
@@ -492,10 +493,6 @@ function RadarStage({ signalCount }) {
 
   return (
     <section className="center-stage" ref={rootRef}>
-      <div className="center-stage__label">
-        <span>INTELLIGENCE RADIO</span>
-        <small>{String(signalCount).padStart(2, "0")} ACTIVE SIGNALS</small>
-      </div>
       <div className="radar" aria-label="信息雷达动画">
         <div className="radar__ring radar__ring--outer" />
         <div className="radar__ring radar__ring--middle" />
@@ -991,7 +988,17 @@ export function App() {
               direction="left"
             />
           </div>
-          <div className="masthead__signal"><Pulse weight="fill" /> REAL-TIME SIGNAL CONTROL</div>
+          <div className="masthead__signal">
+            <GradientText
+              className="masthead__gradient"
+              colors={["#5227FF", "#FF9FFC", "#B497CF"]}
+              animationSpeed={8}
+              direction="horizontal"
+              yoyo
+            >
+              好奇为眼，真实为岸，此刻为帆
+            </GradientText>
+          </div>
           <LiveClock />
         </header>
 
@@ -1028,7 +1035,7 @@ export function App() {
             </div>
           </aside>
 
-          <RadarStage signalCount={allNews.length + githubRepos.length} />
+          <RadarStage />
 
           <aside className="rail rail--github">
             <RailHeader
@@ -1058,10 +1065,15 @@ export function App() {
 
         <footer className="site-footer">
           <span><Pulse weight="fill" /> 每日 02:00 / 10:00 / 18:00 自动同步</span>
-          <span className="site-footer__right">
-            <button type="button" className="byline" onClick={() => setShowProfile(true)}>by：Jason</button>
-            LIVE DATA ONLY <LinkSimple weight="bold" />
-          </span>
+          <button
+            type="button"
+            className="site-footer__author"
+            aria-label="打开 JASON 个人名片"
+            onClick={() => setShowProfile(true)}
+          >
+            <Shuffle text="Visit The Author" className="site-footer__author-shuffle" />
+            <LinkSimple weight="bold" />
+          </button>
         </footer>
       </main>
       {showProfile && (

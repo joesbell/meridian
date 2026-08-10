@@ -421,13 +421,18 @@ button {
 .masthead__signal {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--muted);
+  justify-content: center;
+  gap: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
 }
 
-.masthead__signal svg {
-  color: var(--mint);
-  animation: statusPulse 1.7s ease-in-out infinite;
+.masthead__gradient {
+  min-width: 0;
+  margin: 0;
+  font: inherit;
+  letter-spacing: inherit;
 }
 
 .masthead time {
@@ -441,7 +446,9 @@ button {
 }
 
 .masthead time small {
-  color: var(--muted);
+  color: #c0ccc8;
+  font-size: 13px;
+  font-weight: 700;
   letter-spacing: 0.06em;
 }
 
@@ -1037,39 +1044,6 @@ button {
   transform: rotate(-32deg);
 }
 
-.center-stage__label {
-  position: absolute;
-  top: 18px;
-  right: 22px;
-  left: 22px;
-  z-index: 5;
-  display: flex;
-  justify-content: space-between;
-  color: #69706d;
-  font: 500 8px/1 "DM Mono", monospace;
-  letter-spacing: 0.1em;
-}
-
-.center-stage__label span {
-  color: var(--orange);
-}
-
-/* Jason 名片：不再常驻底部，点击 footer 的 by：Jason 后以旋转动画浮层呈现 */
-.byline {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
-  cursor: pointer;
-}
-
-.byline:hover {
-  color: var(--mint);
-}
-
 .profile-overlay {
   position: fixed;
   inset: 0;
@@ -1327,26 +1301,46 @@ button {
 }
 
 .site-footer {
+  position: relative;
   display: flex;
-  height: 30px;
+  height: 34px;
   align-items: center;
   justify-content: space-between;
   padding: 0 4px;
   border-top: 1px solid var(--line);
-  color: #555d5a;
+  color: #9aa7a2;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-.site-footer span {
+.site-footer > span {
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
-.site-footer__right {
-  gap: 14px;
+.site-footer__author {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  background: transparent;
+  cursor: pointer;
 }
 
-.site-footer span:first-child svg {
+.site-footer__author-shuffle {
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.site-footer > span:first-child svg {
   color: var(--mint);
 }
 
@@ -1890,7 +1884,7 @@ button {
     padding: 0 12px;
   }
 
-  .site-footer span:last-child {
+  .site-footer__author {
     display: none;
   }
 
