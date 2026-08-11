@@ -10,7 +10,8 @@
     "build": "vite build && node scripts/prepare-sites-build.mjs",
     "start": "node --env-file=.env server/start.mjs",
     "deploy": "bash scripts/deploy.sh",
-    "db:reset": "rm -f data/meridian.db data/meridian.db-shm data/meridian.db-wal && echo \"数据库已清空（data/meridian.db* 已删除）\"",
+    "db:reset": "node scripts/db-reset.mjs",
+    "db:reset:server": "bash scripts/db-reset-server.sh",
     "preview": "vite preview",
     "test:sites": "node --test tests/sites-worker.test.mjs",
     "test:feed": "node --test tests/feed-api.test.mjs"
