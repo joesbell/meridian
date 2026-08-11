@@ -1,34 +1,41 @@
 <p align="center">
-  <img src="public/assets/brand/techtide-radar.png" width="96" alt="TechTide Logo" />
+  <img src="public/assets/brand/meridian-mark.png" width="96" alt="Meridian Logo" />
 </p>
 
-<h1 align="center">TechTide · 技术潮汐</h1>
+<h1 align="center">Meridian · 子午视界</h1>
 
 <p align="center">
   <strong>一站聚合全球科技资讯与 GitHub 热榜，AI 全文翻译成中文。</strong><br/>
-  不用翻 N 个英文网站，不用啃生肉，打开一页就能掌握今天的技术潮汐。
+  好奇为眼，真实为岸，此刻为帆。
 </p>
 
 ---
 
 ## 这是什么
 
-TechTide 是一个自动运转的科技资讯聚合站：
+Meridian 是一个自动运转的科技资讯聚合站：
 
-- **每天 3 轮自动抓取** 23 家国际顶级科技媒体（TechCrunch、The Verge、MIT Technology Review、Ars Technica、Hacker News、STAT、36Kr……），覆盖 AI 大模型、科技产品、商业投资、编程、工具推荐、健康医学 6 大分类
+- **每天 3 轮自动抓取** 23 家国际顶级科技媒体（TechCrunch、The Verge、MIT Technology Review、Ars Technica、Hacker News、STAT、36Kr……），覆盖 商业、科技产品、AI 大模型、编程、工具推荐、健康 6 大分类
 - **GitHub Trending 官方榜单**今日 / 本周 / 本月三周期热榜，真实 Star 数与周期增量，不估算、不补零
-- **AI 全程中文化**：标题、摘要、文章正文、项目 README 全部由大模型翻译润色（Qwen-MT + GLM 摘要），产品名、代码、链接保留原文可核验
+- **AI 全程中文化**：标题、摘要、文章正文、项目 README 全部由大模型翻译润色（Qwen-MT 翻译 + GLM-4-Flash 摘要），产品名、代码、链接保留原文可核验
 - **点开即读**：服务端后台预取正文和 README 并缓存，详情页毫秒级打开，沉浸式中文阅读
 - **真实数据原则**：只展示真实抓到的内容，抓不到就空着，绝不用示例数据凑数
 
 ## 为什么用它
 
-| 以前的姿势 | 用 TechTide 后 |
+| 以前的姿势 | 用 Meridian 后 |
 |---|---|
 | 每天刷五六个英文科技站 | 打开一页，6 大分类尽收眼底 |
 | 英文长文啃不动 | AI 翻译成自然流畅的中文，附要点摘要 |
 | GitHub 热榜全是英文简介 | 简介和 README 都是中文，30 秒判断值不值得看 |
-| 各站更新节奏不一 | 每天 10:00 / 18:00 / 02:00（北京时间）准时更新 |
+| 各站更新节奏不一 | 每天 02:00 / 10:00 / 18:00（北京时间）准时更新 |
+
+## 运转机制
+
+- 调度器每天 02:00 / 10:00 / 18:00 三个整点触发全量抓取（`server/scheduler.mjs`）
+- RSS 优先，抓不到正文走 HTTP，再不行用 Scrapling 真实 Chrome 兜底（`scripts/scrape_live.py`）
+- 摘要失败自动回退全量翻译，保证详情页永远有中文内容
+- 每月 1 号 02:00 抓取前彻底清空数据库，重新抓取一轮，保持内容新鲜
 
 ## 视觉体验
 
@@ -36,7 +43,7 @@ Spline 3D 交互机器人、GSAP 动效、响应式三栏控制台布局，支�
 
 ## 技术栈
 
-React 19 + Vite 6 前端 · 原生 Node.js 后端 · SQLite 持久化 · Python Scrapling 真实 Chrome 抓取 · 阿里云百炼 Qwen-MT / 智谱 GLM 中文化 · Docker 一键部署
+React 19 + Vite 6 前端 · 原生 Node.js 后端 · SQLite（better-sqlite3）持久化 · Python Scrapling 真实 Chrome 抓取 · 阿里云百炼 Qwen-MT / 智谱 GLM-4-Flash 中文化 · Docker 一键部署
 
 ## 本地运行
 
@@ -64,6 +71,7 @@ docker run -d --name meridian-live --restart unless-stopped \
 ```bash
 npm run build
 npm run test:feed
+npm run test:sites
 ```
 
 视觉验收记录在 `design-qa.md`，架构细节见 `docs/ARCHITECTURE.md`。

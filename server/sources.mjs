@@ -42,10 +42,14 @@ export const NEWS_SOURCES = [
   { name: "Lifehacker", url: "https://lifehacker.com/rss", categoryId: "工具推荐" },
 
   // —— 健康 ——
-  { name: "STAT", url: "https://www.statnews.com/feed/", categoryId: "健康" },
+  // 已用抓取器的 UA 逐一实测（2026-08）：以下源均可正常返回 RSS。
+  // Mayo Clinic / Healthline / Drugs.com / Cochrane / WebMD 被 Cloudflare 拦截（403/超时），
+  // PubMed 无通用 RSS、UpToDate 需订阅、MedlinePlus 只有按主题的百科更新源、Cancer.org 未找到 RSS，故未纳入。
+  { name: "WHO", url: "https://www.who.int/rss-feeds/news-english.xml", categoryId: "健康" },
+  { name: "CDC MMWR", url: "https://www.cdc.gov/mmwr/rss/mmwr.xml", categoryId: "健康" },
   { name: "Nature Medicine", url: "https://www.nature.com/nm.rss", categoryId: "健康" },
-  { name: "Medical News Today", url: "https://www.medicalnewstoday.com/rss", categoryId: "健康" },
-  { name: "WebMD", url: "https://rssfeeds.webmd.com/rss/rss.aspx?RSSSource=RSS_PUBLIC", categoryId: "健康" },
+  { name: "American Diabetes Association", url: "https://www.diabetes.org/rss.xml", categoryId: "健康" },
+  { name: "American Heart Association", url: "https://newsroom.heart.org/cats/heart_news.xml", categoryId: "健康" },
 ];
 
 // 每个分类取多少条新闻

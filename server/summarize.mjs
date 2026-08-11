@@ -46,24 +46,29 @@ async function summarize(kind, title, text) {
   const label = kind === "readme" ? "GitHub 仓库 README" : "英文新闻文章";
   const response = await fetch(url, {
     method: "POST",
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(60_000),
     headers: {
       "content-type": "application/json",
       authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
-      temperature: 0.2,
-      max_tokens: 2048,
+      temperature: 0.3,
+      max_tokens: 4096,
       messages: [
         {
           role: "system",
           content:
-            "你是中文科技资讯编辑。读懂用户给你的英文原文后，用中文输出详细要点总结（不是逐句翻译）。" +
+            "你是资深中文科技资讯主编，母语级中文写作者。读懂用户给你的英文原文后，用中文重写出详细完整的要点报道（不是逐句翻译）。" +
             '只返回 JSON：{"title_zh":"中文标题","points":["要点1","要点2",...]}。' +
             "JSON 的结构符号（引号、逗号、冒号、括号）必须是半角英文标点，禁止使用全角符号；" +
-            "要求：5~8 个要点，信息尽量丰富详细，覆盖原文的关键事实、数据、人物、因果和结论；" +
-            "全部要点合计控制在 500 字以内；原文信息量本身很少时按实际信息量总结，不要硬凑；" +
+            "写作要求：" +
+            "1. 8~12 个要点，按信息重要性排序，覆盖原文全部关键事实：事件始末、数据、人物、背景、因果、引述、结论与影响；" +
+            "2. 每个要点是 1~3 句完整陈述（30~80 字），信息量饱满，让读者不读原文也能完整了解这条新闻；" +
+            "3. 全部要点合计 800~1500 字；原文信息量本身很少时按实际信息量总结，不要硬凑；" +
+            "4. 用地道自然的中文表达重新组织语言，严禁翻译腔（如“的”字堆叠、生硬直译、欧式长句），专有名词保留英文原文；" +
+            "5. 严禁使用省略号（……或...），每句话必须说完整；原文末尾被截断时，只总结已有信息，不得用省略号暗示还有下文；" +
+            "6. 不输出空泛套话（如“值得关注”“引发热议”这类没有信息量的句子）；" +
             "不要输出 JSON 以外的任何内容。",
         },
         {
@@ -85,7 +90,7 @@ async function summarize(kind, title, text) {
     console.error(`[summarize] 模型原始输出（前 200 字）: ${content.slice(0, 200)}`);
     throw new Error("摘要模型未返回有效 JSON");
   }
-  const points = parsed.points.map((p) => String(p).trim()).filter(Boolean).slice(0, 10);
+  const points = parsed.points.map((p) => String(p).trim()).filter(Boolean).slice(0, 14);
   if (points.length === 0) throw new Error("摘要模型未返回有效要点");
   return {
     titleZh: String(parsed.title_zh || "").trim() || title,
@@ -93,10 +98,18 @@ async function summarize(kind, title, text) {
   };
 }
 
+// 超长文本截断：尽量在段落/换行边界切断，避免把半句话喂给模型
+function truncateAtBoundary(text, limit) {
+  if (text.length <= limit) return text;
+  const cut = text.slice(0, limit);
+  const boundary = Math.max(cut.lastIndexOf("\n\n"), cut.lastIndexOf("\n"));
+  return boundary > limit * 0.8 ? cut.slice(0, boundary) : cut;
+}
+
 // 文章详情 → 中文摘要。返回可直接 saveArticleDetail 的字段，失败返回 null。
 export async function summarizeArticle(article) {
   if (!summaryEnabled()) return null;
-  const text = (article.paragraphs || []).join("\n\n").slice(0, 12000);
+  const text = truncateAtBoundary((article.paragraphs || []).join("\n\n"), 12000);
   if (!text) return null;
   try {
     const { titleZh, points } = await summarize("article", article.title || "", text);
@@ -115,11 +128,13 @@ export async function summarizeArticle(article) {
 // README → 中文摘要。blocks 中的代码块跳过，其余拼接为原文。失败返回 null。
 export async function summarizeReadme(readme) {
   if (!summaryEnabled()) return null;
-  const text = (readme.blocks || [])
-    .filter((b) => b.type !== "code")
-    .map((b) => b.text)
-    .join("\n")
-    .slice(0, 12000);
+  const text = truncateAtBoundary(
+    (readme.blocks || [])
+      .filter((b) => b.type !== "code")
+      .map((b) => b.text)
+      .join("\n"),
+    12000,
+  );
   if (!text) return null;
   try {
     const { titleZh, points } = await summarize("readme", readme.title || "", text);
