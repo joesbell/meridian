@@ -54,6 +54,31 @@ function LiveClock() {
   return <time dateTime={now.toISOString()}>{date}<small>{time}</small></time>;
 }
 
+function AnimatedBrandMark() {
+  const rootRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    const context = gsap.context(() => {
+      gsap.fromTo(
+        ".brand-mark__glint",
+        { xPercent: -180 },
+        { xPercent: 220, duration: 1.2, ease: "power2.inOut" },
+      );
+    }, rootRef);
+    return () => context.revert();
+  }, []);
+
+  return (
+    <span ref={rootRef} className="brand-mark" aria-hidden="true">
+      <span className="brand-mark__crop">
+        <img className="brand-mark__glyph" src="/assets/brand/meridian-mark-header.png" alt="" />
+        <i className="brand-mark__glint" />
+      </span>
+    </span>
+  );
+}
+
 function InitialDataOverlay() {
   return (
     <div className="initial-data-overlay" role="status" aria-live="polite" aria-label="正在抓取首次数据">
@@ -976,16 +1001,9 @@ export function App() {
       <main className="site-shell" ref={shellRef}>
         <header className="masthead">
           <div className="brand">
-            <img
-              className="brand__radar"
-              src="/assets/brand/techtide-radar.png"
-              width="24"
-              height="24"
-              alt=""
-              aria-hidden="true"
-            />
+            <AnimatedBrandMark />
             <ShinyText
-              text="TechTide"
+              text="Meridian"
               className="brand__shiny"
               speed={2.4}
               color="#aab4b0"
@@ -993,6 +1011,7 @@ export function App() {
               spread={118}
               direction="left"
             />
+            <span className="brand__cn">子午视界</span>
           </div>
           <div className="masthead__signal">
             <GradientText

@@ -9,6 +9,7 @@
     "dev:all": "concurrently -n server,web -c blue,green \"npm:server\" \"npm:dev\"",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
     "start": "node --env-file=.env server/start.mjs",
+    "deploy": "bash scripts/deploy.sh",
     "db:reset": "rm -f data/radius.db data/radius.db-shm data/radius.db-wal && echo \"数据库已清空（data/radius.db* 已删除）\"",
     "preview": "vite preview",
     "test:sites": "node --test tests/sites-worker.test.mjs",

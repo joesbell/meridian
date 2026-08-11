@@ -376,15 +376,45 @@ button {
 .brand {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 7px;
 }
 
-.brand__radar {
-  width: 24px;
-  height: 24px;
+.brand-mark {
+  position: relative;
+  display: grid;
+  width: 19px;
+  height: 19px;
+  place-items: center;
+  isolation: isolate;
+}
+
+.brand-mark__crop {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 17px;
+  height: 17px;
+  overflow: hidden;
+  border-radius: 3px;
+  filter: drop-shadow(0 0 5px rgba(49, 92, 255, 0.32));
+}
+
+.brand-mark__glyph {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 0 9px rgba(125, 255, 217, 0.42));
-  animation: brandRadarPulse 2.8s ease-in-out infinite;
+  will-change: transform;
+}
+
+.brand-mark__glint {
+  position: absolute;
+  inset: -20% auto -20% 0;
+  width: 42%;
+  transform: skewX(-16deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.62), transparent);
+  mix-blend-mode: screen;
+  will-change: transform;
 }
 
 .brand strong {
@@ -395,10 +425,17 @@ button {
 .brand .brand__shiny {
   display: inline-flex;
   align-items: baseline;
-  min-width: 164px;
+  min-width: 0;
   font: 700 21px/1 "DM Mono", monospace;
   letter-spacing: -0.06em;
   line-height: 1;
+  white-space: nowrap;
+}
+
+.brand__cn {
+  color: #87938f;
+  font: 500 11px/1 "Noto Sans SC", sans-serif;
+  letter-spacing: 0.1em;
   white-space: nowrap;
 }
 
@@ -1666,18 +1703,6 @@ button {
 
 @keyframes statusPulse {
   50% { opacity: 0.25; transform: scale(0.82); }
-}
-
-@keyframes brandRadarPulse {
-  0%,
-  100% {
-    opacity: 0.72;
-    transform: scale(0.92);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.06);
-  }
 }
 
 @media (max-width: 1180px) {
