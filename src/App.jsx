@@ -21,7 +21,11 @@ import ShinyText from "./ShinyText";
 import SpecularButton from "./SpecularButton";
 import GooeyNav from "./GooeyNav";
 import GradientText from "./GradientText";
+import LightRays from "./LightRays";
 import "./styles.css";
+
+// 临时调试：让加载页常驻以预览效果，改回 false 即恢复正常
+const PIN_LOADING_OVERLAY = false;
 
 // 新闻分类标签（与 server/sources.mjs 的 CATEGORIES 一致）
 const NEWS_CATEGORIES = ["商业", "科技产品", "AI大模型", "编程", "工具推荐", "健康"];
@@ -82,6 +86,22 @@ function AnimatedBrandMark() {
 function InitialDataOverlay() {
   return (
     <div className="initial-data-overlay" role="status" aria-live="polite" aria-label="正在抓取首次数据">
+      <div className="initial-data-overlay__backdrop" aria-hidden="true">
+        <LightRays
+          raysOrigin="top-center"
+          raysColor="#7dffd9"
+          raysSpeed={1.2}
+          lightSpread={0.9}
+          rayLength={2.2}
+          pulsating
+          fadeDistance={1.1}
+          saturation={0.9}
+          followMouse
+          mouseInfluence={0.16}
+          noiseAmount={0.06}
+          distortion={0.08}
+        />
+      </div>
       <div className="initial-data-overlay__content">
         <HighResolutionThinkingOrb
           state="searching"
@@ -644,7 +664,7 @@ function Detail({ item, type, onBack, prefetched }) {
           </div>
           <h1>{isNews ? content?.title || item.title : item.name}</h1>
           {isNews && <img src={detailImage} alt="" onClick={() => setZoomed(true)} onError={(event) => onImageError(item, event)} />}
-          <p className="detail-card__lead">{item.summary || item.description}</p>
+          {!isNews && <p className="detail-card__lead">{item.description}</p>}
           {state.loading && <div className="detail-state"><CircleNotch className="spin" /> 正在从数据库读取…</div>}
           {state.error && <LiveError title={isNews ? "原文暂不可读" : "README 暂不可读"} detail={state.error} onRetry={() => window.location.reload()} />}
           {content?.paragraphs?.length > 0 && <div className="article-body">{content.paragraphs.map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 16)}`}>{paragraph}</p>)}</div>}
@@ -975,7 +995,7 @@ export function App() {
       <>
         <InteractiveBackdrop />
         <Offline404 onRetry={retryInitialLoad} retrying={initialLoading} />
-        {initialLoading && <InitialDataOverlay />}
+        {(PIN_LOADING_OVERLAY || initialLoading) && <InitialDataOverlay />}
       </>
     );
   }
@@ -990,7 +1010,7 @@ export function App() {
           prefetched={detailCacheRef.current[detail.item.url]}
           onBack={() => navigate("/")}
         />
-        {initialLoading && <InitialDataOverlay />}
+        {(PIN_LOADING_OVERLAY || initialLoading) && <InitialDataOverlay />}
       </>
     );
   }
@@ -1113,7 +1133,7 @@ export function App() {
           </div>
         </div>
       )}
-      {initialLoading && <InitialDataOverlay />}
+      {(PIN_LOADING_OVERLAY || initialLoading) && <InitialDataOverlay />}
     </>
   );
 }

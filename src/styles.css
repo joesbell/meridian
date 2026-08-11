@@ -53,12 +53,22 @@ input {
   display: grid;
   place-items: center;
   overflow: hidden;
+  background: #060809;
+}
+
+.initial-data-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+}
+
+.initial-data-overlay__backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
   background:
-    linear-gradient(rgba(4, 8, 9, 0.94), rgba(4, 8, 9, 0.97)),
-    repeating-linear-gradient(0deg, transparent 0 41px, rgba(125, 255, 217, 0.07) 42px),
-    repeating-linear-gradient(90deg, transparent 0 41px, rgba(125, 255, 217, 0.07) 42px);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+    radial-gradient(ellipse 62% 52% at 50% 46%, rgba(4, 8, 9, 0.52), transparent 72%),
+    linear-gradient(rgba(4, 8, 9, 0.18), rgba(4, 8, 9, 0.42));
+  pointer-events: none;
 }
 
 .initial-data-overlay::before {
@@ -303,7 +313,7 @@ button {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 1000;
+  z-index: 3000;
   pointer-events: none;
   opacity: 0;
   will-change: transform;
