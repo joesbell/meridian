@@ -31,7 +31,7 @@ import { CATEGORIES } from "./sources.mjs";
 
 // 从请求 URL 中读取查询参数
 function queryValue(url, key) {
-  return new URL(url, "http://radius.local").searchParams.get(key);
+  return new URL(url, "http://meridian.local").searchParams.get(key);
 }
 
 // 获取当前展示数据：每个分类取数据库中按存入时间最新的 10 条（首屏；更多走 /api/news/page 滚动分页），

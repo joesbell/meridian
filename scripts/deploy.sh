@@ -4,11 +4,11 @@
 # 注意：
 #   - 发版内容 = 本地 main 分支最后一次提交的代码（git archive 导出，与当前工作区无关，
 #     未提交的改动、当前所在分支都不会被带上去）
-#   - .env 不上传（密钥留在服务器上）；数据卷 radius-data 不受影响，数据库不会丢
+#   - .env 不上传（密钥留在服务器上）；数据卷 meridian-data 不受影响，数据库不会丢
 set -euo pipefail
 
 SERVER="root@192.255.136.126"
-REMOTE_DIR="/root/radius-live-edition"
+REMOTE_DIR="/root/meridian-live-edition"
 DEPLOY_BRANCH="main"
 
 echo "→ 导出 $DEPLOY_BRANCH 分支代码…"
@@ -25,11 +25,11 @@ rsync -az --delete \
 
 echo "→ 服务器上重新构建镜像并重启容器（约 5-15 分钟）…"
 ssh "$SERVER" "cd $REMOTE_DIR \
-  && docker build -t radius-live . \
-  && (docker rm -f radius-live >/dev/null 2>&1 || true) \
-  && docker run -d --name radius-live --restart unless-stopped \
-       --env-file .env -v radius-data:/app/data \
-       -p 127.0.0.1:4173:4173 radius-live >/dev/null \
+  && docker build -t meridian-live . \
+  && (docker rm -f meridian-live >/dev/null 2>&1 || true) \
+  && docker run -d --name meridian-live --restart unless-stopped \
+       --env-file .env -v meridian-data:/app/data \
+       -p 127.0.0.1:4173:4173 meridian-live >/dev/null \
   && sleep 8 && docker ps --format '容器状态: {{.Status}}' \
   && docker image prune -f >/dev/null && echo '已清理旧镜像层'"
 

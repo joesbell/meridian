@@ -27,7 +27,7 @@ const mime = {
 
 // 静态文件托管：SPA 兜底——任何找不到的文件都回退到 index.html
 async function serveStatic(request, response) {
-  const pathname = decodeURIComponent(new URL(request.url, "http://radius.local").pathname);
+  const pathname = decodeURIComponent(new URL(request.url, "http://meridian.local").pathname);
   const relative = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
   const candidate = path.resolve(publicDir, relative);
   let file = candidate.startsWith(`${publicDir}${path.sep}`) ? candidate : path.join(publicDir, "index.html");
@@ -71,5 +71,5 @@ startScheduler();
 // 监听端口：默认 4173
 const port = Number(process.env.PORT || 4173);
 server.listen(port, "0.0.0.0", () => {
-  console.log(`[server] Radius Live Edition 已启动 → http://localhost:${port}`);
+  console.log(`[server] Meridian Live Edition 已启动 → http://localhost:${port}`);
 });

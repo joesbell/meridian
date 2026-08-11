@@ -1,4 +1,4 @@
-# Radius Live Edition — 上线就绪审查报告
+# Meridian Live Edition — 上线就绪审查报告
 
 > 审查方式：16 个 AI agent（5 维度并行分析 + 11 个高危发现对抗验证），2026-08-03
 > 结论：**代码架构质量不错（SSRF 防护、三级降级、批次模型都是加分项），但按 README 的 Docker 路线现在部署必失败；另有一个公网暴露的滥用缺口和一个需要你拍板的版权战略问题。**
@@ -48,7 +48,7 @@
 `Dockerfile:8` COPY 了 requirements.txt 但无 `pip install`；运行时 scrapling 版本 = 构建那一刻 `ghcr.io/d4vinci/scrapling:latest` 碰巧的版本。上游发新版改 API 后，某次重建镜像爬虫静默全挂。**修复**：Dockerfile 加 `RUN pip install --no-cache-dir -r requirements.txt`，base 镜像钉具体 tag。
 
 ### H2. data/ 未进 .dockerignore + README 启动命令没挂卷
-本机 8MB 的 radius.db 会被 `COPY . .` 打进镜像；容器替换时库随容器销毁（翻译缓存全丢 = Qwen-MT 重译费用）。**修复**：`.dockerignore` 加 `data/`；`docker run` 加 `-v radius-data:/app/data`。（db.mjs:11 已有 mkdirSync，无需改代码）
+本机 8MB 的 meridian.db 会被 `COPY . .` 打进镜像；容器替换时库随容器销毁（翻译缓存全丢 = Qwen-MT 重译费用）。**修复**：`.dockerignore` 加 `data/`；`docker run` 加 `-v meridian-data:/app/data`。（db.mjs:11 已有 mkdirSync，无需改代码）
 
 ### H3. 图片代理白名单只校验初始 URL，重定向可逃逸
 `feedApi.mjs:136-147` 白名单只查用户提交的 URL；`scraper.mjs:146-158` 的重定向循环每跳只重跑 SSRF 校验、不重验白名单；且 `google.com` / `.mzstatic.com` 无条件放行。攻击者找到白名单域上的开放重定向即可把你的服务器当匿名图片代理跳板。**修复**：`fetchWithRedirectGuard` 加 per-hop 白名单回调（改动集中在一处）。

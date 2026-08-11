@@ -3,7 +3,7 @@ import { CircleNotch } from "@phosphor-icons/react";
 
 const Spline = lazy(() => import("@splinetool/react-spline"));
 
-const ROBOT_SCENE_PATH = "/assets/robot/radius-whobee.scene.splinecode";
+const ROBOT_SCENE_PATH = "/assets/robot/meridian-whobee.scene.splinecode";
 
 function RobotLoading() {
   return (

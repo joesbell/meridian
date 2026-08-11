@@ -1,70 +1,69 @@
-# RADIUS / LIVE EDITION
+<p align="center">
+  <img src="public/assets/brand/techtide-radar.png" width="96" alt="TechTide Logo" />
+</p>
 
-一个 React 驱动的全球新闻与 GitHub 热榜阅读器。
+<h1 align="center">TechTide · 技术潮汐</h1>
 
-## 已实现
+<p align="center">
+  <strong>一站聚合全球科技资讯与 GitHub 热榜，AI 全文翻译成中文。</strong><br/>
+  不用翻 N 个英文网站，不用啃生肉，打开一页就能掌握今天的技术潮汐。
+</p>
 
-- 两栏阅读体验：每日新闻简报 + GitHub 实时热榜。
-- 新闻端读取 TechCrunch、The Verge、MIT Technology Review、Ars Technica、GitHub Blog、Hacker News、STAT、36Kr 等公开信源，再由 Scrapling 抓取页面、正文与受热链限制的图片。只要取得一条真实内容就会显示，不会为了凑满 15 条而补入示例。
-- 新闻覆盖 AI / 大模型、科技产品、投资 / 美股、创业 / 商业、编程 / Codex、健康 / 医学，并标记重要新闻、行业趋势、工具推荐。
-- GitHub 端抓取官方 Trending 的今日 / 本周 / 本月页面，每个周期最多显示 15 条真实结果；列表展示当前总 Star 及今天、本周、本月的官方增量。某仓库不在另一周期的榜单中时显示“—”，不会补零或估算。
-- 两个栏目均支持手动刷新；打开页面后每两小时自动抓取一次。服务端缓存时长也是两小时，避免重复抓取。
-- 首页首次取得列表后，服务端会在后台依次预抓取新闻正文和当前 GitHub 榜单仓库的 README，完成中文本地化并写入两小时缓存；点击详情时优先读取缓存。
-- 首次抓取确认断网且两栏都没有数据时，页面会显示 React Bits Fuzzy Text 风格的 404；单个来源失败或仍有任意真实数据时继续展示首页。
-- GSAP 仅用于低干扰淡入与刷新反馈；交互不再移动正文、缩放图片或持续追随鼠标，保留 `prefers-reduced-motion` 的浏览器默认降动效能力。
+---
+
+## 这是什么
+
+TechTide 是一个自动运转的科技资讯聚合站：
+
+- **每天 3 轮自动抓取** 23 家国际顶级科技媒体（TechCrunch、The Verge、MIT Technology Review、Ars Technica、Hacker News、STAT、36Kr……），覆盖 AI 大模型、科技产品、商业投资、编程、工具推荐、健康医学 6 大分类
+- **GitHub Trending 官方榜单**今日 / 本周 / 本月三周期热榜，真实 Star 数与周期增量，不估算、不补零
+- **AI 全程中文化**：标题、摘要、文章正文、项目 README 全部由大模型翻译润色（Qwen-MT + GLM 摘要），产品名、代码、链接保留原文可核验
+- **点开即读**：服务端后台预取正文和 README 并缓存，详情页毫秒级打开，沉浸式中文阅读
+- **真实数据原则**：只展示真实抓到的内容，抓不到就空着，绝不用示例数据凑数
+
+## 为什么用它
+
+| 以前的姿势 | 用 TechTide 后 |
+|---|---|
+| 每天刷五六个英文科技站 | 打开一页，6 大分类尽收眼底 |
+| 英文长文啃不动 | AI 翻译成自然流畅的中文，附要点摘要 |
+| GitHub 热榜全是英文简介 | 简介和 README 都是中文，30 秒判断值不值得看 |
+| 各站更新节奏不一 | 每天 10:00 / 18:00 / 02:00（北京时间）准时更新 |
+
+## 视觉体验
+
+Spline 3D 交互机器人、GSAP 动效、响应式三栏控制台布局，支持 `prefers-reduced-motion` 自动降动效。
+
+## 技术栈
+
+React 19 + Vite 6 前端 · 原生 Node.js 后端 · SQLite 持久化 · Python Scrapling 真实 Chrome 抓取 · 阿里云百炼 Qwen-MT / 智谱 GLM 中文化 · Docker 一键部署
 
 ## 本地运行
 
 ```bash
 npm install
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-npm run dev -- --port 4173
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+cp .env.example .env   # 填入 TRANSLATION_API_KEY（阿里云百炼）
+npm run dev:all        # 打开 http://localhost:5173
 ```
 
-打开 `http://localhost:4173`。
+## 部署
 
-## 中文呈现
-
-界面、新闻标题、摘要、详情正文、GitHub 项目简介和 README 均显示简体中文。为避免逐词硬译，推荐使用大模型做中文本地化（任意 OpenAI 兼容接口均可，默认 DeepSeek）：
+需要真实 Chrome 环境，不适用 Serverless，推荐自有 VPS + Docker：
 
 ```bash
-cp .env.example .env
-# 编辑 .env，填入 TRANSLATION_API_KEY
+docker build -t meridian-live .
+docker run -d --name meridian-live --restart unless-stopped \
+  --env-file .env -v meridian-data:/app/data -p 4173:4173 meridian-live
 ```
 
-服务器启动时会自动加载 `.env`。未配置密钥时仍会使用 Google Translate 降级路径，但中文润色质量不如大模型。产品名、仓库名、编程语言、代码、URL 和数字保持原样，原始链接始终保留用于核验。
-
-## 独立发布路径：GitHub + 自有服务器 + Docker + 自有域名
-
-Scrapling 需要真实 Chrome 进程，不适合普通 Vercel Serverless 函数。项目已包含 `Dockerfile` 和独立生产服务器，推荐部署到你自己控制的 Ubuntu 云服务器；代码、域名、缓存和抓取进程都归你。
-
-1. 在 GitHub 新建自己的仓库，把本目录推送到 `main`。
-2. 在自己的云服务器安装 Docker，克隆仓库并进入项目目录。
-3. 构建并启动：
-
-```bash
-docker build -t radius-live .
-docker run -d --name radius-live \
-  --restart unless-stopped \
-  --env-file .env \
-  -p 4173:4173 \
-  radius-live
-```
-
-4. 在 Cloudflare 或域名注册商中，把域名的 A 记录指向服务器公网 IP。
-5. 使用 Caddy 或 Nginx 把 `https://你的域名` 反向代理到 `http://127.0.0.1:4173`，并开启 HTTPS。
-6. 更新时执行 `git pull`，重新构建镜像并替换容器。
-
-## 上线前的一个现实建议
-
-本地和单实例部署使用两小时内存缓存，适合个人使用与低流量站点。若网站有多人同时访问，建议接入自己账号下的 Redis，并用两小时定时任务预热抓取；这样不同访问者共享同一份快照，服务重启也不丢缓存。
+本项目生产环境使用 `npm run deploy` 一键发版（main 分支代码 → rsync → 服务器重建镜像 → 重启容器）。
 
 ## 验证
 
 ```bash
 npm run build
-npm run test:sites
+npm run test:feed
 ```
 
-视觉验收记录在 `design-qa.md`。
+视觉验收记录在 `design-qa.md`，架构细节见 `docs/ARCHITECTURE.md`。

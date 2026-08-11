@@ -16,7 +16,7 @@
 6. 详情数据生成：文章详情 + README 改为 **GLM-4-Flash（智谱，免费）理解后输出中文要点总结**（`{title_zh, points[]}`），不再是逐段硬翻译；列表标题/摘要翻译不变（Qwen-MT）。降级链：GLM → Qwen-MT 全量翻译 → Google 翻译。
 7. 前端轮询：02/10/18 整点后 **5 分钟**窗口内每 30 秒查 `/api/feed`，`updatedAt` 变化即停；窗口外不轮询。
 8. ProfileCard（Jason 卡片）移到整页底部居中（footer 上方），尺寸缩小约 0.8 倍。
-9. 一次性操作：实施完成后删除 `data/radius.db*`，重启服务触发首轮抓取。
+9. 一次性操作：实施完成后删除 `data/meridian.db*`，重启服务触发首轮抓取。
 
 ## 后端
 

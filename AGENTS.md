@@ -6,7 +6,7 @@ Before making substantial visual changes, use the Product Design plugin's `get-c
 
 When implementing from a selected generated mock, treat that image as the source of truth for layout, component anatomy, density, spacing, color, typography, visible content, and hierarchy.
 
-## Radius / Live Edition direction
+## Meridian / Live Edition direction
 
 The current selected visual source of truth is `design/selected-option-2.png` (2026-07-25). Build a full-screen dark radio control center with three adaptive zones: a left rail of tactile news cards, a dominant center radar and radio desk, and a right rail of compact GitHub ranking cards. Use near-black graphite surfaces, restrained cobalt, safety orange, and mint signal accents. The composition should feel like a bespoke late-night broadcast console, not a generic SaaS dashboard, glass UI, or AI template.
 

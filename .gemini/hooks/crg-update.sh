@@ -5,6 +5,6 @@ set -euo pipefail
 
 cat > /dev/null || true
 
-code-review-graph update --skip-flows --repo "/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/radius-live-edition" >/dev/null 2>&1 || true
+code-review-graph update --skip-flows --repo "/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/meridian-live-edition" >/dev/null 2>&1 || true
 echo '{"suppressOutput": true}'
 exit 0

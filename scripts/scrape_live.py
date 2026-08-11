@@ -137,7 +137,7 @@ def _google_translate_batch(translated, indices, normalized):
             "https://translate.googleapis.com/translate_a/single"
             f"?client=gtx&sl=auto&tl=zh-CN&dt=t&q={quote(normalized[index])}"
         )
-        request = Request(url, headers={"User-Agent": "Mozilla/5.0 RadiusLiveEdition/1.0"})
+        request = Request(url, headers={"User-Agent": "Mozilla/5.0 MeridianLiveEdition/1.0"})
         with urlopen(request, timeout=30) as response:
             value = translation_from_google(json.loads(response.read().decode("utf-8")))
         if not value:

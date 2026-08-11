@@ -200,7 +200,7 @@ export async function fetchText(url, { timeout = 12000, github = false } = {}) {
       headers: {
         "user-agent": github
           ? "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-          : "RadiusLiveEdition/1.0 (+https://radius.local; editorial reader)",
+          : "MeridianLiveEdition/1.0 (+https://meridian.local; editorial reader)",
         accept: github
           ? "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
           : "application/rss+xml, application/atom+xml, application/xml, text/xml, text/html;q=0.9, */*;q=0.5",
@@ -671,7 +671,7 @@ export async function fetchReadmeFast(repoUrl, { translate = true } = {}) {
         const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${filename}`;
         const response = await fetch(rawUrl, {
           signal: AbortSignal.timeout(8000),
-          headers: { "user-agent": "RadiusLiveEdition/1.0" },
+          headers: { "user-agent": "MeridianLiveEdition/1.0" },
           redirect: "follow",
         });
         if (!response.ok) continue;

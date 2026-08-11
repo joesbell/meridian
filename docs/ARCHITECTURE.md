@@ -1,4 +1,4 @@
-# Radius Live Edition — 项目架构与运转流程报告
+# Meridian Live Edition — 项目架构与运转流程报告
 
 > 版本：dev 分支 · 生成日期：2026-08-01
 > 定位：React 驱动的全球新闻 + GitHub 热榜实时阅读器，全中文呈现，数据全部来自实时抓取。
@@ -37,7 +37,7 @@ flowchart TB
         TRANS["翻译管道<br/>Qwen-MT（主）→ Google Translate（降级）"]
     end
 
-    subgraph STORE[("SQLite · data/radius.db")]
+    subgraph STORE[("SQLite · data/meridian.db")]
         T1["batches 批次表"]
         T2["news_items 新闻表"]
         T3["repo_items 仓库表"]
@@ -95,7 +95,7 @@ sequenceDiagram
     participant SC as scraper.mjs
     participant PY as scrape_live.py
 
-    S->>DB: 打开 data/radius.db，建表 + 自动迁移
+    S->>DB: 打开 data/meridian.db，建表 + 自动迁移
     S->>SCH: startScheduler()
     SCH->>DB: cleanupEmptyBatches() 清理中断遗留的 pending 批次
     SCH->>SCH: runScrapeCycle("initial") 启动即抓一轮
@@ -188,7 +188,7 @@ flowchart LR
 
 ## 四、数据库设计
 
-`data/radius.db`（SQLite，WAL 模式，better-sqlite3 同步驱动）：
+`data/meridian.db`（SQLite，WAL 模式，better-sqlite3 同步驱动）：
 
 ```
 batches ────────────────┐

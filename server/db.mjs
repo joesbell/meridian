@@ -10,7 +10,7 @@ const projectDir = path.resolve(serverDir, "..");
 const dataDir = path.join(projectDir, "data");
 mkdirSync(dataDir, { recursive: true });
 
-const db = new Database(path.join(dataDir, "radius.db"));
+const db = new Database(path.join(dataDir, "meridian.db"));
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
 
