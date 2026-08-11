@@ -6,7 +6,7 @@
         "code-review-graph",
         "serve"
       ],
-      "cwd": "/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/meridian-live-edition"
+      "cwd": "/Users/jiangs/meridian-live-edition"
     }
   },
   "hooks": {

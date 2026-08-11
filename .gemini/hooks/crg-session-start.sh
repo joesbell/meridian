@@ -5,7 +5,7 @@ set -euo pipefail
 
 cat > /dev/null || true
 
-msg="$(code-review-graph status --repo "/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/meridian-live-edition" 2>&1 | head -n 1 || true)"
+msg="$(code-review-graph status --repo "/Users/jiangs/meridian-live-edition" 2>&1 | head -n 1 || true)"
 
 CRG_MSG="$msg" python3 -c '
 import json,os

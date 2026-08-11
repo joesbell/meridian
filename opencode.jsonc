@@ -7,7 +7,7 @@
         "code-review-graph",
         "serve",
         "--repo",
-        "/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/meridian-live-edition"
+        "/Users/jiangs/meridian-live-edition"
       ]
     }
   }

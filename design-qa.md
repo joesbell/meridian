@@ -4,15 +4,15 @@
 
 - 新闻详情原始截图：`/var/folders/lb/xyxn_07j6t5c_1bn16w77nkm0000gn/T/codex-clipboard-836db407-a651-4582-a6e7-d01785dded1f.png`
 - GitHub 详情原始截图：`/var/folders/lb/xyxn_07j6t5c_1bn16w77nkm0000gn/T/codex-clipboard-3dde4689-f1a5-4e9f-9c0d-efe95520a4db.png`
-- 首页背景基准截图：`/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/meridian-live-edition/design/home-background-source.png`
+- 首页背景基准截图：`/Users/jiangs/meridian-live-edition/design/home-background-source.png`
 - 用户约束：缩小正文标题、增大类别标签；正文使用 Spotlight Card 与边缘颜色光晕；返回按钮复用首页抓取按钮的 Specular Button 视觉。二级页外围必须复用首页深色动态网格和鼠标凸起效果，但网格不再中央亮、两侧暗，而是全屏保持首页中央区域的亮度。
 
 ## Implementation evidence
 
 - 页面：`http://localhost:5173/repo/daily-pascalorg-editor`
-- 首屏截图：`/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/meridian-live-edition/design/detail-uniform-grid-implementation.png`
-- 同尺寸 QA 截图：`/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/meridian-live-edition/design/detail-uniform-grid-qa-1280x720.png`
-- 首页与二级页并排对比：`/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/meridian-live-edition/design/detail-background-comparison.png`
+- 首屏截图：`/Users/jiangs/meridian-live-edition/design/detail-uniform-grid-implementation.png`
+- 同尺寸 QA 截图：`/Users/jiangs/meridian-live-edition/design/detail-uniform-grid-qa-1280x720.png`
+- 首页与二级页并排对比：`/Users/jiangs/meridian-live-edition/design/detail-background-comparison.png`
 - 首页源图为 1280 × 720 px；二级页实现为 1265 × 712 px，并排比较时等比例归一到 1280 × 720。
 - 状态：GitHub 详情及中文 README 已加载，指针停在左侧背景网格，鼠标凸起形变可见，无加载遮罩或错误弹层。
 
@@ -61,9 +61,9 @@
 
 ### Iteration 4 — 百分比宽度与卡片内滚动
 
-- 最新源图：`/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/meridian-live-edition/design/detail-responsive-source.png`。
-- 最新实现：`/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/meridian-live-edition/design/detail-responsive-implementation.png`。
-- 同屏并排对比：`/Users/jiangs/Documents/Codex/2026-07-24/ai-product-design-plugin-product-design-2/outputs/meridian-live-edition/design/detail-responsive-comparison.png`。
+- 最新源图：`/Users/jiangs/meridian-live-edition/design/detail-responsive-source.png`。
+- 最新实现：`/Users/jiangs/meridian-live-edition/design/detail-responsive-implementation.png`。
+- 同屏并排对比：`/Users/jiangs/meridian-live-edition/design/detail-responsive-comparison.png`。
 - CSS 视口：1863 × 1354；调整前截图为 1848 × 1343 px（页面原生滚动条占用截图区域），调整后截图为 1863 × 1354 px。并排图将两侧等比例放入 1863 × 1354 的同尺寸面板，设备像素比不变。
 - P1 已解决：正文壳层由固定 900px 改为视口宽度的 92%，宽屏中的无效留白显著减少，同时保留 4% 的左右背景呼吸区。
 - P1 已解决：详情页固定为一屏高，正文卡片占用工具栏下方剩余空间；页面文档高度从 2767px 收敛为 1354px。
