@@ -1044,7 +1044,20 @@ export function App() {
               好奇为眼，真实为岸，此刻为帆
             </GradientText>
           </div>
-          <LiveClock />
+          <div className="masthead__actions">
+            <a
+              className="masthead__github"
+              href="https://github.com/joesbell/meridian"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub 仓库"
+              title="GitHub · joesbell/meridian"
+            >
+              <GithubLogo weight="bold" />
+              <span>GitHub</span>
+            </a>
+            <LiveClock />
+          </div>
         </header>
 
         <section className="control-grid">

@@ -492,6 +492,37 @@ button {
   letter-spacing: -0.08em;
 }
 
+.masthead__actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.masthead__github {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: #c0ccc8;
+  font-size: 17px;
+  transition: color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.masthead__github span {
+  font: 600 11px/1 "DM Mono", monospace;
+  letter-spacing: 0.08em;
+}
+
+.masthead__github:hover {
+  color: var(--mint);
+  border-color: rgba(125, 255, 217, 0.55);
+  box-shadow: 0 0 16px rgba(125, 255, 217, 0.18);
+  transform: translateY(-1px);
+}
+
 .masthead time small {
   color: #c0ccc8;
   font-size: 13px;

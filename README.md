@@ -5,7 +5,7 @@
 <h1 align="center">Meridian · 子午视界</h1>
 
 <p align="center">
-  <strong>一站聚合全球科技资讯与 GitHub 热榜，AI 全文翻译成中文。</strong><br/>
+  <strong>一站聚合全球科技资讯与 GitHub 热榜,中文转译，无需梯子。</strong><br/>
   好奇为眼，真实为岸，此刻为帆。
 </p>
 
