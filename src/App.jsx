@@ -176,30 +176,26 @@ function isOfflineError(error) {
 
 function InteractiveBackdrop({ uniformGrid = false }) {
   const canvasRef = useRef(null);
-  const ringRef = useRef(null);
-  const dotRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ring = ringRef.current;
-    const dot = dotRef.current;
-    if (!canvas || !ring || !dot) return undefined;
+    if (!canvas) return undefined;
     const ctx = canvas.getContext("2d");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    // 低端机判定：CPU ≤4 核或内存 ≤4GB 直接降级；运行后采样前 120 帧均值 <30fps 再自动降级（只降不升）
+    let degraded = (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4;
+    let sampled = degraded;
+    let sampleFrames = 0;
+    let sampleStart = 0;
     let width = window.innerWidth;
     let height = window.innerHeight;
     let px = width / 2;
     let py = height / 2;
-    let rx = px;
-    let ry = py;
-    let visible = false;
     let frame = 0;
-    let lastTrail = 0;
     let points = [];
     let cols = 0;
     let rows = 0;
-    const spacing = 42;
+    let spacing = degraded ? 64 : 42;
     const radius = 150;
     const maxDisplace = 24;
     const gridEase = reduced ? 1 : 0.13;
@@ -210,7 +206,6 @@ function InteractiveBackdrop({ uniformGrid = false }) {
     const pointerXTo = gsap.quickTo(pointer, "x", { duration: 0.28, ease: "power3.out" });
     const pointerYTo = gsap.quickTo(pointer, "y", { duration: 0.28, ease: "power3.out" });
     const pointerInfluenceTo = gsap.quickTo(pointer, "influence", { duration: 0.24, ease: "power2.out" });
-    const trails = [];
     const motes = Array.from({ length: 70 }, () => ({
       x: Math.random(),
       y: Math.random(),
@@ -221,7 +216,7 @@ function InteractiveBackdrop({ uniformGrid = false }) {
     const resize = () => {
       width = window.innerWidth;
       height = window.innerHeight;
-      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      const ratio = degraded ? 1 : Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
       canvas.style.width = `${width}px`;
@@ -239,32 +234,40 @@ function InteractiveBackdrop({ uniformGrid = false }) {
       }
     };
 
+    const degrade = () => {
+      degraded = true;
+      spacing = 64;
+      resize();
+    };
+
     const move = (event) => {
       px = event.clientX;
       py = event.clientY;
-      visible = true;
       pointerXTo(px);
       pointerYTo(py);
       pointerInfluenceTo(1);
-      dot.style.transform = `translate3d(${px}px, ${py}px, 0)`;
-      const interactive = event.target instanceof Element && event.target.closest("button, a, input");
-      ring.classList.toggle("is-active", Boolean(interactive));
-      if (!reduced && performance.now() - lastTrail > 18) {
-        trails.push({ x: px, y: py, life: 1, size: interactive ? 4 : 2 });
-        lastTrail = performance.now();
-      }
       document.documentElement.style.setProperty("--pointer-x", `${(px / width - 0.5) * -18}px`);
       document.documentElement.style.setProperty("--pointer-y", `${(py / height - 0.5) * -14}px`);
     };
 
     const draw = (time) => {
+      if (!sampled) {
+        if (sampleFrames === 0) sampleStart = time;
+        sampleFrames += 1;
+        if (sampleFrames >= 120) {
+          sampled = true;
+          if (120000 / (time - sampleStart) < 30) degrade();
+        }
+      }
       ctx.clearRect(0, 0, width, height);
-      const localGlow = ctx.createRadialGradient(pointer.x, pointer.y, 0, pointer.x, pointer.y, radius * 0.95);
-      localGlow.addColorStop(0, `rgba(73, 183, 157, ${0.16 * pointer.influence})`);
-      localGlow.addColorStop(0.44, `rgba(49, 88, 255, ${0.055 * pointer.influence})`);
-      localGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
-      ctx.fillStyle = localGlow;
-      ctx.fillRect(pointer.x - radius, pointer.y - radius, radius * 2, radius * 2);
+      if (!degraded) {
+        const localGlow = ctx.createRadialGradient(pointer.x, pointer.y, 0, pointer.x, pointer.y, radius * 0.95);
+        localGlow.addColorStop(0, `rgba(73, 183, 157, ${0.16 * pointer.influence})`);
+        localGlow.addColorStop(0.44, `rgba(49, 88, 255, ${0.055 * pointer.influence})`);
+        localGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = localGlow;
+        ctx.fillRect(pointer.x - radius, pointer.y - radius, radius * 2, radius * 2);
+      }
 
       for (let index = 0; index < points.length; index += 1) {
         const point = points[index];
@@ -320,40 +323,21 @@ function InteractiveBackdrop({ uniformGrid = false }) {
         }
       }
 
-      motes.forEach((mote) => {
+      const moteCount = degraded ? 28 : motes.length;
+      for (let index = 0; index < moteCount; index += 1) {
+        const mote = motes[index];
         ctx.globalAlpha = 0.12 + Math.sin(time * 0.0015 + mote.phase) * 0.08;
         ctx.fillStyle = "#8affdf";
         ctx.beginPath();
         ctx.arc(mote.x * width + (px / width - 0.5) * -9, mote.y * height, mote.size, 0, Math.PI * 2);
         ctx.fill();
-      });
+      }
       ctx.globalAlpha = 1;
-      for (let index = trails.length - 1; index >= 0; index -= 1) {
-        const trail = trails[index];
-        trail.life -= 0.035;
-        trail.y += 0.15;
-        if (trail.life <= 0) {
-          trails.splice(index, 1);
-          continue;
-        }
-        ctx.fillStyle = `rgba(255,91,45,${trail.life * 0.55})`;
-        ctx.fillRect(trail.x - trail.size / 2, trail.y - trail.size / 2, trail.size, trail.size);
-      }
-      if (visible && !coarse) {
-        rx += (px - rx) * 0.16;
-        ry += (py - ry) * 0.16;
-        ring.style.transform = `translate3d(${rx}px, ${ry}px, 0)`;
-        ring.classList.add("is-visible");
-        dot.classList.add("is-visible");
-      }
       frame = window.requestAnimationFrame(draw);
     };
 
     const leave = () => {
-      visible = false;
       pointerInfluenceTo(0);
-      ring.classList.remove("is-visible", "is-active");
-      dot.classList.remove("is-visible");
     };
     resize();
     window.addEventListener("resize", resize);
@@ -372,16 +356,12 @@ function InteractiveBackdrop({ uniformGrid = false }) {
   }, [uniformGrid]);
 
   return (
-    <>
-      <div className={`ambient${uniformGrid ? " ambient--uniform" : ""}`} aria-hidden="true">
-        <div className="ambient__grid" />
-        <canvas ref={canvasRef} className="ambient__canvas" />
-        <AsciiSideLabel text="NEWS" side="left" />
-        <AsciiSideLabel text="CODING" side="right" />
-      </div>
-      <div ref={ringRef} className="cursor-ring" />
-      <div ref={dotRef} className="cursor-dot" />
-    </>
+    <div className={`ambient${uniformGrid ? " ambient--uniform" : ""}`} aria-hidden="true">
+      <div className="ambient__grid" />
+      <canvas ref={canvasRef} className="ambient__canvas" />
+      <AsciiSideLabel text="NEWS" side="left" />
+      <AsciiSideLabel text="CODING" side="right" />
+    </div>
   );
 }
 
@@ -518,7 +498,7 @@ function LiveError({ title, detail, onRetry }) {
   );
 }
 
-function RadarStage() {
+function RadarStage({ paused = false }) {
   const rootRef = useRef(null);
 
   useLayoutEffect(() => {
@@ -556,7 +536,7 @@ function RadarStage() {
         <span className="radar__scale radar__scale--c">240°</span>
       </div>
 
-      <InteractiveRobotSpline />
+      <InteractiveRobotSpline paused={paused} />
     </section>
   );
 }
@@ -1000,25 +980,14 @@ export function App() {
     );
   }
 
-  if (detail?.item) {
-    return (
-      <>
-        <InteractiveBackdrop uniformGrid />
-        <Detail
-          item={detail.item}
-          type={detail.type}
-          prefetched={detailCacheRef.current[detail.item.url]}
-          onBack={() => navigate("/")}
-        />
-        {(PIN_LOADING_OVERLAY || initialLoading) && <InitialDataOverlay />}
-      </>
-    );
-  }
+  const detailItem = detail?.item;
 
   return (
     <>
-      <InteractiveBackdrop />
-      <main className="site-shell" ref={shellRef}>
+      <InteractiveBackdrop uniformGrid={Boolean(detailItem)} />
+      {/* 首页常驻挂载：进入详情页只 hidden 不卸载，返回时机器人/列表/滚动位置全部保留 */}
+      <div hidden={Boolean(detailItem)}>
+        <main className="site-shell" ref={shellRef}>
         <header className="masthead">
           <div className="brand">
             <AnimatedBrandMark />
@@ -1093,7 +1062,7 @@ export function App() {
             </div>
           </aside>
 
-          <RadarStage />
+          <RadarStage paused={Boolean(detailItem)} />
 
           <aside className="rail rail--github">
             <RailHeader
@@ -1134,6 +1103,15 @@ export function App() {
           </button>
         </footer>
       </main>
+      </div>
+      {detailItem && (
+        <Detail
+          item={detail.item}
+          type={detail.type}
+          prefetched={detailCacheRef.current[detail.item.url]}
+          onBack={() => navigate("/")}
+        />
+      )}
       {showProfile && (
         <div className="profile-overlay" onClick={() => setShowProfile(false)}>
           <div className="profile-overlay__card" onClick={(event) => event.stopPropagation()}>

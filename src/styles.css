@@ -43,7 +43,12 @@ body,
 button,
 a,
 input {
-  cursor: none;
+  cursor: url("/cursors/quantum-shard-default.svg") 3 3, default;
+}
+
+.rail__scroll,
+.rail__scroll * {
+  cursor: url("/cursors/quantum-shard-link.svg") 3 3, pointer;
 }
 
 .initial-data-overlay {
@@ -306,52 +311,6 @@ button {
   .ascii-side-label {
     display: none;
   }
-}
-
-.cursor-ring,
-.cursor-dot {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 3000;
-  pointer-events: none;
-  opacity: 0;
-  will-change: transform;
-}
-
-.cursor-ring {
-  width: 34px;
-  height: 34px;
-  margin: -17px 0 0 -17px;
-  border: 1px solid rgba(125, 255, 217, 0.85);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.72),
-    inset 0 0 20px rgba(125, 255, 217, 0.07),
-    0 0 24px rgba(125, 255, 217, 0.12);
-  transition: width 0.22s, height 0.22s, margin 0.22s, border-color 0.22s, opacity 0.15s;
-}
-
-.cursor-ring.is-visible,
-.cursor-dot.is-visible {
-  opacity: 1;
-}
-
-.cursor-ring.is-active {
-  width: 44px;
-  height: 44px;
-  margin: -22px 0 0 -22px;
-  border-color: var(--orange);
-  background: rgba(255, 100, 50, 0.045);
-}
-
-.cursor-dot {
-  width: 7px;
-  height: 7px;
-  margin: -3.5px 0 0 -3.5px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 0 2px #08090a, 0 0 12px var(--mint);
 }
 
 .site-shell,
@@ -1789,11 +1748,6 @@ button {
   a,
   input {
     cursor: auto;
-  }
-
-  .cursor-ring,
-  .cursor-dot {
-    display: none;
   }
 
   .site-shell {

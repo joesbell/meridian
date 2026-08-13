@@ -12,7 +12,9 @@ The current selected visual source of truth is `design/selected-option-2.png` (2
 
 The center must include a large radar sweep, legible signal blips, a real image mascot at the lower edge, and a functional hip-hop radio console. The mascot head/eyes should visibly follow the pointer. The radio must play and pause source-authorized preview audio and show real songs scraped from a current public chart with source provenance. Never invent tracks or fallback ranking data.
 
-Use the public interaction language of `https://www.chungsunglau.co.uk/` only for spatial background and pointer behavior: a lagging high-contrast cursor, subtle grid/particle depth, pointer-driven parallax, and lightweight trails. Do not copy its branding, portfolio objects, imagery, or text.
+Use the public interaction language of `https://www.chungsunglau.co.uk/` only for spatial background behavior: subtle grid/particle depth and pointer-driven parallax. Do not copy its branding, portfolio objects, imagery, or text.
+
+The selected cursor is `Quantum Shard` (2026-08-13): a compact, moderately slender, static three-plane AI computation crystal with a ceramic-white face and black face. Its core uses the Meridian logo's sampled primary purple (`#8470FF`) by default and the site's built-in mint (`#7DFFD9`) only inside the left and right scrolling lists. Implement it through the browser's native CSS cursor URL with a system fallback. Do not reintroduce cursor-follow DOM, Canvas cursor drawing, trails, glow, blur, radar rings, or per-frame cursor animation.
 
 Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts/prepare-sites-build.mjs`, and `tests/sites-worker.test.mjs` intact so the same local prototype can be handed to Sites. Before a Sites handoff, run `npm run build` and `npm run test:sites`; the build must leave `dist/client/index.html`, `dist/server/index.js`, and `dist/.openai/hosting.json`.
 

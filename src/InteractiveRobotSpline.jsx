@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { CircleNotch } from "@phosphor-icons/react";
 
 const Spline = lazy(() => import("@splinetool/react-spline"));
@@ -14,13 +14,23 @@ function RobotLoading() {
   );
 }
 
-export function InteractiveRobotSpline() {
+export function InteractiveRobotSpline({ paused = false }) {
   const [ready, setReady] = useState(false);
+  const appRef = useRef(null);
 
   const handleLoad = (spline) => {
+    appRef.current = spline;
     spline.findObjectByName("Plane")?.hide();
     setReady(true);
   };
+
+  // 详情页打开时首页被 hidden 保留挂载，暂停 Spline 渲染循环避免后台空转
+  useEffect(() => {
+    const app = appRef.current;
+    if (!app) return;
+    if (paused) app.stop();
+    else app.play();
+  }, [paused]);
 
   return (
     <div
