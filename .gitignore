@@ -7,3 +7,4 @@ work/
 # Added by code-review-graph
 .code-review-graph/
 data/
+.playwright-mcp/

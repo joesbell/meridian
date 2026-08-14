@@ -90,6 +90,13 @@ try {
   // 列已存在，忽略
 }
 
+// 迁移：头条共现热度（同一故事被多少家独立源报道，抓取时计算；旧数据为 0，下次抓取后生效）
+try {
+  db.exec("ALTER TABLE news_items ADD COLUMN heat REAL NOT NULL DEFAULT 0");
+} catch {
+  // 列已存在，忽略
+}
+
 // 迁移：为按存入时间排序补充 created_at 列
 try {
   db.exec("ALTER TABLE news_items ADD COLUMN created_at TEXT");
@@ -163,8 +170,8 @@ export function completeBatch(batchId) {
 // 其余字段更新为最新内容；新条目按当前时间插入。
 const insertNewsStmt = db.prepare(`
   INSERT INTO news_items
-    (id, batch_id, category, title, summary, source, source_url, url, image, published_at, lens, created_at)
-  VALUES (@id, @batch_id, @category, @title, @summary, @source, @source_url, @url, @image, @published_at, @lens, @created_at)
+    (id, batch_id, category, title, summary, source, source_url, url, image, published_at, lens, created_at, heat)
+  VALUES (@id, @batch_id, @category, @title, @summary, @source, @source_url, @url, @image, @published_at, @lens, @created_at, @heat)
   ON CONFLICT(id) DO UPDATE SET
     batch_id = excluded.batch_id,
     category = excluded.category,
@@ -175,7 +182,8 @@ const insertNewsStmt = db.prepare(`
     url = excluded.url,
     image = excluded.image,
     published_at = excluded.published_at,
-    lens = excluded.lens
+    lens = excluded.lens,
+    heat = excluded.heat
 `);
 export function insertNewsItems(batchId, items) {
   const now = new Date().toISOString();
@@ -194,6 +202,7 @@ export function insertNewsItems(batchId, items) {
         published_at: normalizeDateText(row.publishedAt),
         lens: row.lens || "",
         created_at: now,
+        heat: row.heat || 0,
       });
     }
   });
@@ -401,6 +410,7 @@ function rowToNewsItem(row) {
     publishedAt: row.published_at,
     lens: row.lens,
     createdAt: row.created_at,
+    heat: row.heat || 0,
   };
 }
 

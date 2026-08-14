@@ -265,6 +265,38 @@ function dateValue(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+// ---- 头条热度：多源共现 ----
+// RSS 不提供阅读量/点击量，可用的真实热度信号是"同一故事被多少家独立源报道"。
+// 必须在翻译前的原文标题上计算：译后标题由模型逐条独立生成，相似度信号会失真。
+const TOP_STORY_SIMILARITY = 0.3;
+
+export function titleBigrams(text) {
+  const clean = String(text || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+  const grams = new Set();
+  for (let i = 0; i < clean.length - 1; i += 1) grams.add(clean.slice(i, i + 2));
+  return grams;
+}
+
+export function bigramJaccard(a, b) {
+  if (!a.size || !b.size) return 0;
+  let overlap = 0;
+  for (const gram of a) if (b.has(gram)) overlap += 1;
+  return overlap / (a.size + b.size - overlap);
+}
+
+// 每条新闻的共现热度 = 本分类入选条目中，标题相似且来源不同的条数
+export function coverageHeats(items) {
+  const grams = items.map((item) => titleBigrams(item.title));
+  return items.map((item, index) => {
+    let coverage = 0;
+    for (let other = 0; other < items.length; other += 1) {
+      if (other === index || items[other].source === item.source) continue;
+      if (bigramJaccard(grams[index], grams[other]) >= TOP_STORY_SIMILARITY) coverage += 1;
+    }
+    return coverage;
+  });
+}
+
 function editorialLens(category) {
   if (category === "编程" || category === "工具推荐") return "工具推荐";
   if (category === "商业") return "行业趋势";
@@ -388,7 +420,9 @@ export async function scrapeAllNews() {
       if (!unique.has(key)) unique.set(key, item);
     }
     const selected = diversifiedItems([...unique.values()], ITEMS_PER_CATEGORY);
-    output[category] = selected;
+    // 翻译前计算共现热度（译后标题逐条独立生成，相似度会失真）
+    const heats = coverageHeats(selected);
+    output[category] = selected.map((item, index) => ({ ...item, heat: heats[index] }));
   }
 
   // 批量翻译每个分类
@@ -403,7 +437,11 @@ export async function scrapeAllNews() {
     );
     try {
       const localized = await translateNewsToChinese(output[category]);
-      output[category] = localized.items;
+      // 翻译按索引一一对应（长度不一致已在 translateNewsToChinese 内抛错），heat 原样带回
+      output[category] = localized.items.map((item, index) => ({
+        ...item,
+        heat: output[category][index]?.heat || 0,
+      }));
     } catch (error) {
       console.error(`[scraper] 分类「${category}」(${output[category].length} 条) 列表翻译失败: ${error.message}，保留原文`);
     }

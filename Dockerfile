@@ -3,10 +3,14 @@ FROM ghcr.io/d4vinci/scrapling:latest
 # Node 22 LTS（better-sqlite3@13 要求 >=22；Debian apt 源的 nodejs 只有 18，不能用）
 # build-essential：better-sqlite3 预编译包下载失败时需从源码编译（node-gyp 需要 make/g++）
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends curl ca-certificates build-essential \
+  && apt-get install -y --no-install-recommends curl ca-certificates build-essential tzdata \
   && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
   && apt-get install -y --no-install-recommends nodejs \
   && rm -rf /var/lib/apt/lists/*
+
+# 容器默认 UTC：调度窗口（02/10/18）、timeLabel 格式化、月度清库判断全部依赖本地时间，
+# 不锁定时区会整体偏移 8 小时（02:04 的抓取显示成 18:04 UTC 之类）
+ENV TZ=Asia/Shanghai
 
 WORKDIR /app
 COPY package.json package-lock.json requirements.txt ./

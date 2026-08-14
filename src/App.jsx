@@ -22,20 +22,35 @@ import SpecularButton from "./SpecularButton";
 import GooeyNav from "./GooeyNav";
 import GradientText from "./GradientText";
 import LightRays from "./LightRays";
+import { MobileHome } from "./MobileHome";
+import {
+  NEWS_CATEGORIES,
+  REPO_PERIODS,
+  articleImage,
+  formatDateTime,
+  formatNumber,
+  onImageError,
+  proxiedImage,
+  sourceFavicon,
+} from "./feed-utils";
 import "./styles.css";
+/* 移动端浅色体系必须在 styles.css 之后加载：同级选择器覆盖靠源码顺序生效 */
+import "./mobile.css";
 
 // 临时调试：让加载页常驻以预览效果，改回 false 即恢复正常
 const PIN_LOADING_OVERLAY = false;
 
-// 新闻分类标签（与 server/sources.mjs 的 CATEGORIES 一致）
-const NEWS_CATEGORIES = ["商业", "科技产品", "AI大模型", "编程", "工具推荐", "健康"];
-
-// GitHub 热榜周期（与 server 抓取的 snapshots key 一致）
-const REPO_PERIODS = [
-  { value: "daily", label: "今日" },
-  { value: "weekly", label: "本周" },
-  { value: "monthly", label: "本月" },
-];
+// 视口 ≤820px 切换为移动端专用页面（MobileHome），桌面端布局不变
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia("(max-width: 820px)").matches);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 820px)");
+    const listener = (event) => setIsMobile(event.matches);
+    query.addEventListener("change", listener);
+    return () => query.removeEventListener("change", listener);
+  }, []);
+  return isMobile;
+}
 
 const SIGNALS = [
   { label: "AI", x: 22, y: 30, tone: "mint" },
@@ -365,44 +380,6 @@ function InteractiveBackdrop({ uniformGrid = false }) {
   );
 }
 
-function formatTime(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "刚刚";
-  const minutes = Math.max(1, Math.round((Date.now() - date.getTime()) / 60000));
-  if (minutes < 60) return `${minutes} 分钟前`;
-  if (minutes < 1440) return `${Math.floor(minutes / 60)} 小时前`;
-  return `${Math.floor(minutes / 1440)} 天前`;
-}
-
-function formatNumber(value) {
-  if (value === undefined || value === null || value === "—") return "—";
-  const numeric = Number(String(value).replace(/,/g, ""));
-  return Number.isFinite(numeric) ? new Intl.NumberFormat("zh-CN").format(numeric) : String(value);
-}
-
-function sourceFavicon(url) {
-  try {
-    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(url).hostname)}&sz=128`;
-  } catch {
-    return "https://www.google.com/s2/favicons?domain=github.com&sz=128";
-  }
-}
-
-function proxiedImage(url, referer) {
-  return `/api/image?url=${encodeURIComponent(url)}&referer=${encodeURIComponent(referer || "")}`;
-}
-
-function articleImage(item) {
-  return proxiedImage(item.image || sourceFavicon(item.url), item.url);
-}
-
-function onImageError(item, event) {
-  const image = event.currentTarget;
-  if (image.dataset.fallback === "1") return;
-  image.dataset.fallback = "1";
-  image.classList.add("is-source-mark");
-  image.src = proxiedImage(sourceFavicon(item.url), "https://www.google.com/");
-}
 
 function useRoute() {
   const [path, setPath] = useState(() => window.location.pathname);
@@ -463,7 +440,7 @@ function NewsCard({ item, index, onOpen }) {
         <small>{item.category} · {item.source}</small>
         <strong>{item.title}</strong>
         <span>{item.summary}</span>
-        <em>{formatTime(item.publishedAt)} <CaretRight weight="bold" /></em>
+        <em>{formatDateTime(item.publishedAt)} <CaretRight weight="bold" /></em>
       </span>
     </button>
   );
@@ -643,6 +620,9 @@ function Detail({ item, type, onBack, prefetched }) {
             <a className="source-link" href={item.url} target="_blank" rel="noreferrer">核验原始来源 <ArrowUpRight weight="bold" /></a>
           </div>
           <h1>{isNews ? content?.title || item.title : item.name}</h1>
+          {isNews && formatDateTime(item.publishedAt) && (
+            <p className="detail-meta">发布于 {formatDateTime(item.publishedAt)}</p>
+          )}
           {isNews && <img src={detailImage} alt="" onClick={() => setZoomed(true)} onError={(event) => onImageError(item, event)} />}
           {!isNews && <p className="detail-card__lead">{item.description}</p>}
           {state.loading && <div className="detail-state"><CircleNotch className="spin" /> 正在从数据库读取…</div>}
@@ -678,6 +658,7 @@ function Detail({ item, type, onBack, prefetched }) {
 
 export function App() {
   const { path, navigate } = useRoute();
+  const isMobile = useIsMobile();
   const [showProfile, setShowProfile] = useState(false);
 
   // 名片浮层打开时按 Esc 关闭
@@ -819,7 +800,8 @@ export function App() {
   }, []);
 
   useLayoutEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    // 移动端页面（MobileHome）有自己的入场动画，跳过桌面端编排
+    if (isMobile || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
     const context = gsap.context(() => {
       const timeline = gsap.timeline({ defaults: { ease: "power3.out" } });
       timeline
@@ -830,7 +812,7 @@ export function App() {
         .from(".profile-card-slot", { y: 28, rotate: -2, opacity: 0, duration: 0.7 }, "-=.45");
     }, shellRef);
     return () => context.revert();
-  }, []);
+  }, [isMobile]);
 
   // 所有新闻的扁平查找表（用于详情页查找）：首屏 10 条 + 滚动分页追加的条目，按 id 去重
   const allNews = useMemo(() => {
@@ -973,7 +955,7 @@ export function App() {
   if (offlinePage) {
     return (
       <>
-        <InteractiveBackdrop />
+        {!isMobile && <InteractiveBackdrop />}
         <Offline404 onRetry={retryInitialLoad} retrying={initialLoading} />
         {(PIN_LOADING_OVERLAY || initialLoading) && <InitialDataOverlay />}
       </>
@@ -984,9 +966,28 @@ export function App() {
 
   return (
     <>
-      <InteractiveBackdrop uniformGrid={Boolean(detailItem)} />
+      {/* 移动端不挂指针交互画布：触屏无指针跟随场景，省一路 rAF */}
+      {!isMobile && <InteractiveBackdrop uniformGrid={Boolean(detailItem)} />}
       {/* 首页常驻挂载：进入详情页只 hidden 不卸载，返回时机器人/列表/滚动位置全部保留 */}
       <div hidden={Boolean(detailItem)}>
+        {isMobile ? (
+          <MobileHome
+            feed={feed}
+            activeCategory={activeCategory}
+            onSelectCategory={setActiveCategory}
+            repoPeriod={repoPeriod}
+            onSelectPeriod={setRepoPeriod}
+            news={activeNews}
+            paging={activePaging}
+            repos={githubRepos}
+            error={error}
+            onRetry={() => loadFeed()}
+            onLoadMore={() => loadMoreNews(activeCategory)}
+            onOpenNews={(record) => navigate(`/news/${encodeURIComponent(record.id)}`)}
+            onOpenRepo={(record) => navigate(`/repo/${encodeURIComponent(record.id)}`)}
+            onShowProfile={() => setShowProfile(true)}
+          />
+        ) : (
         <main className="site-shell" ref={shellRef}>
         <header className="masthead">
           <div className="brand">
@@ -1103,6 +1104,7 @@ export function App() {
           </button>
         </footer>
       </main>
+        )}
       </div>
       {detailItem && (
         <Detail

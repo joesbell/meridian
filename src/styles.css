@@ -1525,6 +1525,13 @@ button {
   letter-spacing: -0.035em;
 }
 
+.detail-meta {
+  margin: -16px 0 24px;
+  color: #61716b;
+  font: 500 12px/1.5 "DM Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
 .detail-card > img {
   float: right;
   width: min(42%, 460px);

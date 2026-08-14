@@ -41,6 +41,30 @@ const NEWS_FEED_LIMIT = 10;
 const GITHUB_FEED_LIMIT = 15;
 const NEWS_PAGE_SIZE = 5;
 
+// ---- 头条热度分 ----
+// RSS 协议本身不提供阅读量/点击量，可用的真实热度信号只有两个：
+//   1) 同一故事被多家独立源报道（item.heat，抓取时在原文标题上计算）——权重最高
+//   2) 发布时间新鲜度（96 小时线性衰减）——兜底与并列裁决
+// 对首屏条目打分，得分最高者提升为分类头条（位置 0），其余维持时间序；
+// 只调整展示顺序，分页游标仍按时间序计算，不受影响。
+export function promoteTopStory(items) {
+  if (items.length < 3) return items;
+  const scores = items.map((item) => {
+    const published = Date.parse(item.publishedAt || "") || Date.parse(item.createdAt || "") || 0;
+    const hours = Math.max(0, (Date.now() - published) / 3_600_000);
+    const freshness = Math.max(0, 1 - hours / 96);
+    return freshness + (item.heat || 0) * 0.8;
+  });
+  let top = 0;
+  for (let i = 1; i < scores.length; i += 1) {
+    if (scores[i] > scores[top]) top = i;
+  }
+  if (top === 0) return items;
+  const next = items.slice();
+  next.unshift(next.splice(top, 1)[0]);
+  return next;
+}
+
 async function getFeed() {
   const news = {};
   const newsCursors = {};
@@ -48,7 +72,7 @@ async function getFeed() {
   for (const c of CATEGORIES) {
     const { items, nextCursor } = getNewsPageByCategory(c.id, null, NEWS_FEED_LIMIT);
     if (items.length) {
-      news[c.id] = items;
+      news[c.id] = promoteTopStory(items);
       newsCursors[c.id] = nextCursor
         ? Buffer.from(JSON.stringify(nextCursor), "utf-8").toString("base64url")
         : null;
@@ -75,7 +99,7 @@ async function getFeed() {
     scraping: getScrapingStatus(),
     updatedAt: updatedAt || null,
     timeLabel: updatedAt
-      ? new Date(updatedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })
+      ? new Date(updatedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Shanghai" })
       : null,
     categories: CATEGORIES.map((c) => c.id),
     news,
