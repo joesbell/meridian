@@ -37,13 +37,24 @@ function executeScrapling(mode, payload = {}) {
       cwd: projectDir,
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env, PYTHONUNBUFFERED: "1" },
+      // 独立进程组：超时时能整组杀掉。只杀 python 会让它拉起的 Chrome 变孤儿，
+      // 孤儿持有 stdout 管道 → close 事件永不触发 → 串行队列永久卡死（2026-08-15 线上事故）
+      detached: true,
     });
+    // 杀整个进程组（python + Chrome 孙进程），失败退回杀单进程
+    const killGroup = () => {
+      try {
+        process.kill(-child.pid, "SIGKILL");
+      } catch {
+        child.kill("SIGKILL");
+      }
+    };
     let stdout = "";
     let stderr = "";
-    const timeout = setTimeout(() => child.kill("SIGTERM"), 150_000);
+    const timeout = setTimeout(killGroup, 150_000);
     child.stdout.on("data", (chunk) => {
       stdout += chunk;
-      if (stdout.length > 12_000_000) child.kill("SIGTERM");
+      if (stdout.length > 12_000_000) killGroup();
     });
     child.stderr.on("data", (chunk) => {
       stderr += chunk;
@@ -54,6 +65,13 @@ function executeScrapling(mode, payload = {}) {
     });
     child.on("close", (code) => {
       clearTimeout(timeout);
+      // 扫尾：不管成功失败，进程组里可能留有 Chrome 孤儿（scrapling 正常路径也会漏），
+      // 整组补杀，保证零泄漏。组已空时 kill 抛 ESRCH，忽略即可
+      try {
+        process.kill(-child.pid, "SIGKILL");
+      } catch {
+        // 进程组已空，无事发生
+      }
       if (code !== 0) {
         reject(new Error(stderr.trim() || `Scrapling 进程退出：${code}`));
         return;
