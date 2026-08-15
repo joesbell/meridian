@@ -19,12 +19,25 @@ export function formatTime(value) {
   return `${Math.floor(minutes / 1440)} 天前`;
 }
 
-// 绝对发布时间：2026-08-13 10:04（列表与详情页统一使用）
+// 绝对发布时间：2026-08-13 10:04（列表与详情页统一使用）。
+// 全站统一锁定北京时间：中文简报站，所有访客看到同一口径，不随设备时区变化
 export function formatDateTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("zh-CN", {
+      timeZone: "Asia/Shanghai",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
+      .formatToParts(date)
+      .map((p) => [p.type, p.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
 }
 
 export function formatNumber(value) {

@@ -1035,7 +1035,7 @@ export function App() {
             <RailHeader
               code="DAILY INTEL"
               title="今日简报"
-              meta={`${feed.timeLabel || "--:--"} · 全中文`}
+              meta={`数据更新时间：${formatDateTime(feed.updatedAt) || "--"}`}
               visual="news"
             />
             <div className="category-tabs">
@@ -1069,7 +1069,7 @@ export function App() {
             <RailHeader
               code="OPEN SOURCE"
               title="GitHub 热榜"
-              meta={`${feed.timeLabel || "--:--"} · TOP ${githubRepos.length || "—"}`}
+              meta={`${formatDateTime(feed.updatedAt) || "--"} · TOP ${githubRepos.length || "—"}`}
               visual="github"
             />
             <div className="category-tabs">
