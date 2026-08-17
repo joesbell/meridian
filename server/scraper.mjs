@@ -28,8 +28,16 @@ const scraplingScript = path.join(projectDir, "scripts", "scrape_live.py");
 
 // 串行队列：同一时刻只跑一个 Scrapling 子进程
 let scraplingQueue = Promise.resolve();
+const scraplingTimeoutMs = Number(process.env.SCRAPLING_TIMEOUT_MS) || 150_000;
 
 // ============ Scrapling 子进程管理 ============
+
+// Chrome 会脱离 python 的进程组独立存活（线上观测到 ppid=1、各自独立 pgid），组杀够不着，
+// 每次任务结束按精确进程名补杀。串行队列保证此刻没有别的任务在用 Chrome，容器内也没有其他 chrome
+function sweepChrome() {
+  const killer = spawn("sh", ["-c", "pkill -9 -x chrome; pkill -9 -x chrome_crashpad; exit 0"], { stdio: "ignore" });
+  killer.on("error", () => undefined);
+}
 
 function executeScrapling(mode, payload = {}) {
   return new Promise((resolve, reject) => {
@@ -51,35 +59,41 @@ function executeScrapling(mode, payload = {}) {
     };
     let stdout = "";
     let stderr = "";
-    const timeout = setTimeout(killGroup, 150_000);
+    let settled = false;
+    // 所有结束路径都走 settle：成功、失败、超时强杀，只生效第一次
+    const settle = (done, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      sweepChrome();
+      done(value);
+    };
+    // 强杀后不能干等 close：泄漏的 Chrome 孙进程已脱离进程组且继承 stdout 管道，
+    // python 死后 close 可能永不触发。给 close 2 秒机会，之后强制结束任务，
+    // 保证串行队列永不卡死（2026-08-17 批次 #21 挂死 32 小时事故）
+    const abort = (reason) => {
+      killGroup();
+      setTimeout(() => settle(reject, new Error(reason)), 2_000);
+    };
+    const timeout = setTimeout(() => abort(`Scrapling 超时（${Math.round(scraplingTimeoutMs / 1000)}s）已强杀：${mode}`), scraplingTimeoutMs);
     child.stdout.on("data", (chunk) => {
       stdout += chunk;
-      if (stdout.length > 12_000_000) killGroup();
+      if (stdout.length > 12_000_000) abort(`Scrapling 输出超限已强杀：${mode}`);
     });
     child.stderr.on("data", (chunk) => {
       stderr += chunk;
     });
-    child.on("error", (error) => {
-      clearTimeout(timeout);
-      reject(error);
-    });
+    child.on("error", (error) => settle(reject, error));
     child.on("close", (code) => {
-      clearTimeout(timeout);
-      // 扫尾：不管成功失败，进程组里可能留有 Chrome 孤儿（scrapling 正常路径也会漏），
-      // 整组补杀，保证零泄漏。组已空时 kill 抛 ESRCH，忽略即可
-      try {
-        process.kill(-child.pid, "SIGKILL");
-      } catch {
-        // 进程组已空，无事发生
-      }
+      killGroup(); // 扫尾：组内可能留有 Chrome 孤儿（scrapling 正常路径也会漏）。组已空时抛 ESRCH，忽略
       if (code !== 0) {
-        reject(new Error(stderr.trim() || `Scrapling 进程退出：${code}`));
+        settle(reject, new Error(stderr.trim() || `Scrapling 进程退出：${code}`));
         return;
       }
       try {
-        resolve(JSON.parse(stdout));
+        settle(resolve, JSON.parse(stdout));
       } catch {
-        reject(new Error(`Scrapling 返回了无法解析的数据：${stdout.slice(0, 180)}`));
+        settle(reject, new Error(`Scrapling 返回了无法解析的数据：${stdout.slice(0, 180)}`));
       }
     });
     // 子进程启动即崩（如 import 失败）时 stdin 会触发 EPIPE；吞掉它，错误统一由 close 事件上报
