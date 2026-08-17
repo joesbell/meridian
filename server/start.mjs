@@ -37,16 +37,25 @@ async function serveStatic(request, response) {
   } catch {
     file = path.join(publicDir, "index.html");
   }
-  const body = await readFile(file);
-  response.statusCode = 200;
-  response.setHeader("content-type", mime[path.extname(file)] || "application/octet-stream");
   // vite 产物文件名带哈希指纹（index-B7x9k2.js），内容变了文件名就变，可以永久缓存；
-  // public/ 原样拷贝的文件（如机器人场景）和 index.html 不带指纹，每次回源校验
+  // public/ 原样拷贝的文件（如机器人场景）和 index.html 不带指纹，用 ETag 协商缓存：
+  // 内容没变返回 304（几百字节），避免每次刷新都跨国重传 1MB 的机器人场景文件
   const hashed = /-[0-9A-Za-z_-]{8}\.[^.]+$/.test(path.basename(file));
+  const info = await stat(file);
+  const etag = `"${info.size}-${Math.round(info.mtimeMs).toString(36)}"`;
+  response.setHeader("etag", etag);
   response.setHeader(
     "cache-control",
     hashed ? "public, max-age=31536000, immutable" : "no-cache",
   );
+  if (request.headers["if-none-match"] === etag) {
+    response.statusCode = 304;
+    response.end();
+    return;
+  }
+  const body = await readFile(file);
+  response.statusCode = 200;
+  response.setHeader("content-type", mime[path.extname(file)] || "application/octet-stream");
   response.end(body);
 }
 
