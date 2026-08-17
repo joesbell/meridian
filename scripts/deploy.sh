@@ -39,7 +39,7 @@ echo "→ 服务器上重新构建镜像并重启容器（约 5-15 分钟）…"
 ssh $SSH_OPTS "$SERVER" "cd $REMOTE_DIR && rm -f /tmp/meridian-deploy-done \
   && nohup bash -c 'docker build -t meridian-live . \
     && (docker rm -f meridian-live >/dev/null 2>&1 || true) \
-    && docker run -d --name meridian-live --restart unless-stopped \
+    && docker run -d --name meridian-live --restart unless-stopped --init \
       --env-file .env -v meridian-data:/app/data \
       -p 127.0.0.1:4173:4173 meridian-live >/dev/null \
     && docker image prune -f >/dev/null \
