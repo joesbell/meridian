@@ -430,6 +430,9 @@ export async function scrapeAllNews() {
       return extractFeedItems(xml, source);
     }),
   );
+  // 阶段日志：无声卡死排查用（2026-08-17 批次 #25 事故）
+  const okSources = results.filter((r) => r.status === "fulfilled").length;
+  console.log(`[scraper] RSS 抓取完成: ${okSources}/${NEWS_SOURCES.length} 个源成功`);
 
   // 按分类收集
   const byCategory = {};
@@ -467,8 +470,10 @@ export async function scrapeAllNews() {
         image: item.image || await extractOgImage(item.url),
       })),
     );
+    console.log(`[scraper] 分类「${category}」封面图补全，开始翻译`);
     try {
       const localized = await translateNewsToChinese(output[category]);
+      console.log(`[scraper] 分类「${category}」翻译完成`);
       // 翻译按索引一一对应（长度不一致已在 translateNewsToChinese 内抛错），heat 原样带回
       output[category] = localized.items.map((item, index) => ({
         ...item,

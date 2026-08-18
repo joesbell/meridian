@@ -55,6 +55,29 @@ export async function runScrapeCycle(scrapeType = "scheduled") {
   isScraping = true;
 
   try {
+    // 看门狗：整轮抓取超过 20 分钟强制结束本轮并释放互斥锁。
+    // 任何一个环节意外挂死（如 2026-08-17 批次 #25 无声卡死 16 小时），
+    // 都不能再让后续所有定时抓取永远排队——这是最后的兜底
+    const work = runScrapeCycleWork(scrapeType);
+    work.catch(() => undefined); // 看门狗胜出的场景下，内部 promise 之后的拒判不炸进程
+    const watchdog = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("批次看门狗：本轮超过 20 分钟未完成，强制结束")), 20 * 60_000),
+    );
+    watchdog.catch(() => undefined); // race 早已结束时定时器晚触发，不算未处理拒判
+    return await Promise.race([work, watchdog]);
+  } catch (error) {
+    console.error(`[scheduler] 抓取批次失败: ${error.message}`);
+    throw error;
+  } finally {
+    isScraping = false;
+    resolveMutex();
+  }
+}
+
+// 一轮抓取的完整工作体（由 runScrapeCycle 的看门狗包裹调用）。
+// 主体保持原 try 块缩进；错误直接抛给外层统一记录，互斥锁由外层 finally 释放
+async function runScrapeCycleWork(scrapeType) {
+  {
     const now = new Date();
     const timeLabel = timeLabelFromDate(now);
     const batchHour = now.getHours() + now.getMinutes() / 60;
@@ -128,12 +151,6 @@ export async function runScrapeCycle(scrapeType = "scheduled") {
     console.log(`[scheduler] 批次 #${batchId} 完成: ${newsCount} 条新闻, ${repoCount} 个仓库`);
 
     return { batchId, timeLabel, newsCount, repoCount };
-  } catch (error) {
-    console.error(`[scheduler] 抓取批次失败: ${error.message}`);
-    throw error;
-  } finally {
-    isScraping = false;
-    resolveMutex();
   }
 }
 
