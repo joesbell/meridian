@@ -39,6 +39,13 @@ function sweepChrome() {
   killer.on("error", () => undefined);
 }
 
+// 看门狗触发后的全场清理：杀掉所有 scrapling python 和逃逸 Chrome。
+// 只在调度器判定本轮作废后调用，此时任何残留子进程都是该轮的遗留，杀光没有误伤
+export function cleanupScraplingProcesses() {
+  const killer = spawn("sh", ["-c", "pkill -9 -f scrape_live.py; pkill -9 -x chrome; pkill -9 -x chrome_crashpad; exit 0"], { stdio: "ignore" });
+  killer.on("error", () => undefined);
+}
+
 function executeScrapling(mode, payload = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(scraplingPython, [scraplingScript, mode], {

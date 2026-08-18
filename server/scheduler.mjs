@@ -24,6 +24,7 @@ import {
   fetchReadmeFast,
   translateReadmeBlocks,
   parallelLimit,
+  cleanupScraplingProcesses,
 } from "./scraper.mjs";
 import { summarizeArticle, summarizeReadme } from "./summarize.mjs";
 import { CATEGORIES, GITHUB_LIMIT } from "./sources.mjs";
@@ -43,35 +44,46 @@ function timeLabelFromDate(date) {
 
 // 全量抓取一轮数据并写入数据库
 // scrapeType: "scheduled"（定时） | "initial"（启动）
+// 看门狗：整轮超过 30 分钟强制判负 → 清理残留进程 → 立即重抓，最多连试 3 次。
+// 任何一个环节意外挂死（如 2026-08-17 批次 #25 无声卡死 16 小时）都不能再瘫痪调度；
+// 3 次封顶是防止持续性故障无限重试烧 GLM 翻译配额，失败后等下一个定时点即可
+const WATCHDOG_MS = 30 * 60_000;
+const MAX_ATTEMPTS = 3;
+
 export async function runScrapeCycle(scrapeType = "scheduled") {
-  // 互斥：同一时刻只跑一轮
-  const previous = scrapingMutex;
-  let resolveMutex;
-  scrapingMutex = new Promise((resolve) => {
-    resolveMutex = resolve;
-  });
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    // 互斥：同一时刻只跑一轮
+    const previous = scrapingMutex;
+    let resolveMutex;
+    scrapingMutex = new Promise((resolve) => {
+      resolveMutex = resolve;
+    });
 
-  await previous;
-  isScraping = true;
+    await previous;
+    isScraping = true;
 
-  try {
-    // 看门狗：整轮抓取超过 20 分钟强制结束本轮并释放互斥锁。
-    // 任何一个环节意外挂死（如 2026-08-17 批次 #25 无声卡死 16 小时），
-    // 都不能再让后续所有定时抓取永远排队——这是最后的兜底
-    const work = runScrapeCycleWork(scrapeType);
-    work.catch(() => undefined); // 看门狗胜出的场景下，内部 promise 之后的拒判不炸进程
-    const watchdog = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("批次看门狗：本轮超过 20 分钟未完成，强制结束")), 20 * 60_000),
-    );
-    watchdog.catch(() => undefined); // race 早已结束时定时器晚触发，不算未处理拒判
-    return await Promise.race([work, watchdog]);
-  } catch (error) {
-    console.error(`[scheduler] 抓取批次失败: ${error.message}`);
-    throw error;
-  } finally {
-    isScraping = false;
-    resolveMutex();
+    try {
+      const work = runScrapeCycleWork(scrapeType);
+      work.catch(() => undefined); // 看门狗胜出的场景下，内部 promise 之后的拒判不炸进程
+      const watchdog = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("批次看门狗：本轮超过 30 分钟未完成，强制结束")), WATCHDOG_MS),
+      );
+      watchdog.catch(() => undefined); // race 早已结束时定时器晚触发，不算未处理拒判
+      return await Promise.race([work, watchdog]);
+    } catch (error) {
+      const isWatchdog = error.message.includes("看门狗");
+      if (!isWatchdog || attempt === MAX_ATTEMPTS) {
+        console.error(`[scheduler] 抓取批次失败: ${error.message}`);
+        throw error;
+      }
+      console.error(`[scheduler] ${error.message}，清理残留进程后立即重抓（第 ${attempt + 1}/${MAX_ATTEMPTS} 次）`);
+      cleanupScraplingProcesses();
+    } finally {
+      isScraping = false;
+      resolveMutex();
+    }
   }
+  return undefined; // 不可达：MAX_ATTEMPTS 次时上面已 throw
 }
 
 // 一轮抓取的完整工作体（由 runScrapeCycle 的看门狗包裹调用）。
